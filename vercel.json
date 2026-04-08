@@ -2,8 +2,8 @@
   "framework": "vite",
   "builds": [
     {
-      "src": "src/main.tsx",
-      "use": "@vercel/vite"
+      "src": "package.json",
+      "use": "@vercel/static-build"
     },
     {
       "src": "server/index.js",
