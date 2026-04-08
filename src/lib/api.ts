@@ -1,9 +1,13 @@
 import axios from 'axios';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// Automatically strip trailing /api from VITE_API_URL if the user mistakenly added it in Vercel settings
+let RAW_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+if (RAW_API_URL.endsWith('/api')) {
+    RAW_API_URL = RAW_API_URL.slice(0, -4);
+}
 
 const api = axios.create({
-    baseURL: API_URL,
+    baseURL: RAW_API_URL,
     headers: {
         'Content-Type': 'application/json',
     },

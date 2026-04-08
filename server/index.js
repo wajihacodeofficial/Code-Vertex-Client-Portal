@@ -360,8 +360,13 @@ app.post('/api/projects', async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`\n✅ Code Vertex Platform Server running on port ${PORT}`);
-    console.log(`   Auth: Supabase Auth + OTP (Zoho SMTP)`);
-    console.log(`   Endpoints: /api/auth/{signup,login,verify-otp,resend-otp,logout}\n`);
-});
+if (process.env.NODE_ENV !== 'production') {
+    app.listen(PORT, () => {
+        console.log(`\n✅ Code Vertex Platform Server running on port ${PORT}`);
+        console.log(`   Auth: Supabase Auth + OTP (Zoho SMTP)`);
+        console.log(`   Endpoints: /api/auth/{signup,login,verify-otp,resend-otp,logout}\n`);
+    });
+}
+
+// Export the Express API for Vercel serverless integration
+module.exports = app;
