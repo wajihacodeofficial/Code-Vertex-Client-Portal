@@ -21,6 +21,10 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
+-- Ensure these columns exist if the table was created by an older script
+ALTER TABLE users ADD COLUMN IF NOT EXISTS supabase_uid UUID UNIQUE;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified BOOLEAN DEFAULT FALSE;
+
 -- ─── 2. OTP Verifications Table ─────────────────────────────
 CREATE TABLE IF NOT EXISTS otp_verifications (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -30,7 +34,7 @@ CREATE TABLE IF NOT EXISTS otp_verifications (
     used BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
-
+ 
 CREATE INDEX IF NOT EXISTS idx_otp_email ON otp_verifications(email);
 
 -- ─── 3. Projects Table ────────────────────────────────────────
