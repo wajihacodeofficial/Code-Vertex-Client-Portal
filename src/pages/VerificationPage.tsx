@@ -1,21 +1,32 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MailCheck, ArrowRight } from 'lucide-react';
+import toast from 'react-hot-toast';
 import { Footer } from '../components/Footer';
+import api from '../lib/api';
 
 const VerificationPage: React.FC = () => {
     const [otp, setOtp] = useState(['', '', '', '', '', '']);
     const [isVerifying, setIsVerifying] = useState(false);
+    const [isResending, setIsResending] = useState(false);
     const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
     const location = useLocation();
     const navigate = useNavigate();
 
+    const email = location.state?.email;
+
     useEffect(() => {
+        // If no email in state, they shouldn't be here (direct navigation)
+        if (!email) {
+            navigate('/login');
+            return;
+        }
+
         // Focus first input on mount
         if (inputRefs.current[0]) {
             inputRefs.current[0].focus();
         }
-    }, []);
+    }, [email, navigate]);
 
     const handleChange = (index: number, value: string) => {
         // Only allow numbers
@@ -54,77 +65,110 @@ const VerificationPage: React.FC = () => {
         inputRefs.current[focusIndex]?.focus();
     };
 
-    const handleVerify = (e: React.FormEvent) => {
+    const handleVerify = async (e: React.FormEvent) => {
         e.preventDefault();
         const code = otp.join('');
         if (code.length !== 6) return;
 
         setIsVerifying(true);
-        // Mock verification delay
-        setTimeout(() => {
-            navigate('/dashboard');
-        }, 1500);
+        try {
+            const { data } = await api.post('/api/auth/verify-otp', { email, otp: code });
+            toast.success(data.message || 'Email verified successfully!');
+            // Send them to awaiting approval since by default status is pending
+            navigate('/awaiting-approval');
+        } catch (err: unknown) {
+            const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+            toast.error(message || 'Invalid or expired OTP.');
+            setIsVerifying(false); // Let them try again
+        }
     };
+
+    const handleResend = async () => {
+        if (isResending) return;
+        setIsResending(true);
+        try {
+            const { data } = await api.post('/api/auth/resend-otp', { email });
+            toast.success(data.message || 'A new code has been sent.');
+            setOtp(['', '', '', '', '', '']); // Clear inputs
+            inputRefs.current[0]?.focus();
+        } catch (err: unknown) {
+            const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+            toast.error(message || 'Failed to resend code.');
+        } finally {
+            setIsResending(false);
+        }
+    };
+
+    // Prevent render if navigating away
+    if (!email) return null;
 
     return (
         <div className="min-h-screen bg-background relative flex flex-col items-center justify-center font-body py-8 overflow-y-auto">
-      <div className="relative z-10 w-full max-w-lg px-6 animate-in py-12 flex-1 flex flex-col justify-center">
-        <div className="glass-card p-10 rounded-card border-white/10 shadow-glow relative">
-          <div className="flex flex-col items-center mb-8 text-center">
-            <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center shadow-glow mb-6 border border-primary/20">
-              <MailCheck className="text-primary w-10 h-10" />
+            <div className="relative z-10 w-full max-w-lg px-6 animate-in py-12 flex-1 flex flex-col justify-center">
+                <div className="glass-card p-10 rounded-card border-white/10 shadow-glow relative">
+                    <div className="flex flex-col items-center mb-8 text-center">
+                        <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center shadow-glow mb-6 border border-primary/20">
+                            <MailCheck className="text-primary w-10 h-10" />
+                        </div>
+                        <h1 className="text-3xl text-text-primary font-display tracking-tight heading-gradient">Verify Email</h1>
+                        <p className="text-text-muted text-sm mt-3 font-medium tracking-wide">
+                            We've sent a 6-digit code to <br />
+                            <span className="text-text-primary font-bold">{email}</span>
+                        </p>
+                    </div>
+
+                    <form onSubmit={handleVerify} className="space-y-8">
+                        <div className="flex justify-between gap-2 max-w-xs mx-auto">
+                            {otp.map((digit, index) => (
+                                <input
+                                    key={index}
+                                    ref={(el) => { inputRefs.current[index] = el; }}
+                                    type="text"
+                                    maxLength={1}
+                                    value={digit}
+                                    onChange={(e) => handleChange(index, e.target.value)}
+                                    onKeyDown={(e) => handleKeyDown(index, e)}
+                                    onPaste={handlePaste}
+                                    className="w-12 h-14 bg-white/5 border border-white/10 rounded-xl text-center text-xl font-bold text-text-primary focus:border-primary/50 focus:bg-white/10 transition-all outline-none"
+                                />
+                            ))}
+                        </div>
+
+                        <button
+                            type="submit"
+                            disabled={isVerifying || otp.some((d) => d === '')}
+                            className="btn-primary w-full py-4 rounded-full font-black uppercase tracking-widest text-xs shadow-glow group"
+                        >
+                            {isVerifying ? (
+                                <span className="flex items-center justify-center gap-2">
+                                    <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></span>
+                                    Verifying...
+                                </span>
+                            ) : (
+                                <span className="flex items-center justify-center gap-2">
+                                    Confirm Account <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
+                                </span>
+                            )}
+                        </button>
+                    </form>
+
+                    <div className="mt-8 text-center pt-6 border-t border-white/5">
+                        <p className="text-sm text-text-muted">
+                            Didn't receive the code?{' '}
+                            <button
+                                type="button"
+                                onClick={handleResend}
+                                disabled={isResending}
+                                className="text-primary hover:underline font-bold transition-all ml-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                            >
+                                {isResending ? 'Sending...' : 'Click to resend'}
+                            </button>
+                        </p>
+                    </div>
+                </div>
             </div>
-            <h1 className="text-3xl text-text-primary font-display tracking-tight heading-gradient">Verify Email</h1>
-            <p className="text-text-muted text-sm mt-3 font-medium tracking-wide">
-              We've sent a 6-digit code to <br />
-              <span className="text-text-primary font-bold">{location.state?.email || 'your email'}</span>
-            </p>
-          </div>
-
-          <form onSubmit={handleVerify} className="space-y-8">
-            <div className="flex justify-between gap-2 max-w-xs mx-auto">
-              {otp.map((digit, index) => (
-                <input
-                  key={index}
-                  ref={(el) => { inputRefs.current[index] = el; }}
-                  type="text"
-                  maxLength={1}
-                  value={digit}
-                  onChange={(e) => handleChange(index, e.target.value)}
-                  onKeyDown={(e) => handleKeyDown(index, e)}
-                  onPaste={handlePaste}
-                  className="w-12 h-14 bg-white/5 border border-white/10 rounded-xl text-center text-xl font-bold text-text-primary focus:border-primary/50 focus:bg-white/10 transition-all outline-none"
-                />
-              ))}
-            </div>
-
-            <button
-              type="submit"
-              disabled={isVerifying || otp.some((d) => d === '')}
-              className="btn-primary w-full py-4 rounded-full font-black uppercase tracking-widest text-xs shadow-glow group"
-            >
-              {isVerifying ? (
-                <span className="flex items-center justify-center gap-2">
-                  <span className="w-4 h-4 border-2 border-black/20 border-t-black rounded-full animate-spin"></span>
-                  Verifying...
-                </span>
-              ) : (
-                <span className="flex items-center justify-center gap-2">
-                  Confirm Account <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />
-                </span>
-              )}
-            </button>
-          </form>
-
-          <div className="mt-8 text-center pt-6 border-t border-white/5">
-            <p className="text-sm text-text-muted">
-              Didn't receive the code? <button className="text-primary hover:underline font-bold transition-all ml-1">Click to resend</button>
-            </p>
-          </div>
+            <Footer className="px-8 w-full" />
         </div>
-      </div>
-      <Footer className="px-8 w-full" />
-    </div>
     );
 };
 

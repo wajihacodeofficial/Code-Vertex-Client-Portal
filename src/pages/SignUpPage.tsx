@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Globe } from 'lucide-react';
+import { ArrowRight, Globe, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import logo from '../assets/logo.jpeg';
@@ -11,11 +11,15 @@ import { ThemeToggle } from '../components/ThemeToggle';
 const SignUpPage: React.FC = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+    const [confirmPassword, setConfirmPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
     const [portalType, setPortalType] = useState<'client' | 'team'>('client');
     const [countryCode, setCountryCode] = useState('+1');
     const [phone, setPhone] = useState('');
     const [isLoading, setIsLoading] = useState(false);
-    
+
     const { signup, isAuthenticated, user } = useAuth();
     const navigate = useNavigate();
 
@@ -32,15 +36,28 @@ const SignUpPage: React.FC = () => {
 
     const handleSignUp = async (e: React.FormEvent) => {
         e.preventDefault();
+
+        // Client-side validation
+        if (password.length < 8) {
+            toast.error('Password must be at least 8 characters.');
+            return;
+        }
+        if (password !== confirmPassword) {
+            toast.error('Passwords do not match.');
+            return;
+        }
+
         setIsLoading(true);
-        
+
         try {
             const fullPhone = phone ? `${countryCode} ${phone}` : undefined;
-            await signup(name, email, portalType, fullPhone);
+            await signup(name, email, password, portalType, fullPhone);
             setIsLoading(false);
-            navigate('/awaiting-approval');
-        } catch (err: any) {
-            toast.error(err.message || 'Registration failed.');
+            // Redirect to OTP verification page, passing email in state
+            navigate('/verify-email', { state: { email } });
+        } catch (err: unknown) {
+            const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+            toast.error(message || 'Registration failed. Please try again.');
             setIsLoading(false);
         }
     };
@@ -56,9 +73,9 @@ const SignUpPage: React.FC = () => {
                         <Link to="/" className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-glow mb-6 overflow-hidden border border-white/10 group">
                             <img src={logo} alt="Code Vertex" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
                         </Link>
-                        <a 
-                            href="https://codevertex.solutions/" 
-                            target="_blank" 
+                        <a
+                            href="https://codevertex.solutions/"
+                            target="_blank"
                             rel="noopener noreferrer"
                             className="flex items-center gap-2 px-4 py-1.5 bg-white/5 border border-white/10 rounded-full text-[10px] font-black uppercase tracking-widest text-text-muted hover:text-text-primary hover:bg-white/10 transition-all mb-4 group"
                         >
@@ -81,35 +98,86 @@ const SignUpPage: React.FC = () => {
                         ))}
                     </div>
 
-                    <form onSubmit={handleSignUp} className="space-y-6">
+                    <form onSubmit={handleSignUp} className="space-y-5">
+                        {/* Full Name */}
                         <div className="space-y-2">
                             <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest px-1">Full Name</label>
-                            <input 
-                                type="text" 
+                            <input
+                                type="text"
                                 value={name}
                                 onChange={(e) => setName(e.target.value)}
-                                className="input-field w-full" 
+                                className="input-field w-full"
                                 placeholder="John Doe"
                                 required
                             />
                         </div>
 
+                        {/* Email */}
                         <div className="space-y-2">
                             <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest px-1">Email Address</label>
-                            <input 
-                                type="email" 
+                            <input
+                                type="email"
                                 value={email}
                                 onChange={(e) => setEmail(e.target.value)}
-                                className="input-field w-full" 
-                                placeholder="engineering@codevertex.solutions"
+                                className="input-field w-full"
+                                placeholder="you@example.com"
                                 required
                             />
                         </div>
 
+                        {/* Password */}
                         <div className="space-y-2">
-                            <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest px-1">Phone Number (Optional)</label>
+                            <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest px-1">Password</label>
+                            <div className="relative group">
+                                <input
+                                    type={showPassword ? 'text' : 'password'}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    className="input-field w-full pr-12"
+                                    placeholder="Min. 8 characters"
+                                    required
+                                    minLength={8}
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
+                                >
+                                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
+                        </div>
+
+                        {/* Confirm Password */}
+                        <div className="space-y-2">
+                            <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest px-1">Confirm Password</label>
+                            <div className="relative group">
+                                <input
+                                    type={showConfirmPassword ? 'text' : 'password'}
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    className="input-field w-full pr-12"
+                                    placeholder="Re-enter password"
+                                    required
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                    className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
+                                >
+                                    {showConfirmPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                                </button>
+                            </div>
+                            {confirmPassword && password !== confirmPassword && (
+                                <p className="text-red-400 text-[11px] px-1 font-semibold">Passwords do not match</p>
+                            )}
+                        </div>
+
+                        {/* Phone (Optional) */}
+                        <div className="space-y-2">
+                            <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest px-1">Phone Number <span className="normal-case font-normal">(Optional)</span></label>
                             <div className="flex gap-2">
-                                <select 
+                                <select
                                     className="bg-white/5 border border-white/10 rounded-lg px-2 text-xs text-text-primary outline-none focus:border-primary/50 transition-colors w-48 appearance-none cursor-pointer"
                                     value={countryCode}
                                     onChange={(e) => setCountryCode(e.target.value)}
@@ -120,19 +188,19 @@ const SignUpPage: React.FC = () => {
                                         </option>
                                     ))}
                                 </select>
-                                <input 
-                                    type="tel" 
+                                <input
+                                    type="tel"
                                     value={phone}
                                     onChange={(e) => setPhone(e.target.value)}
-                                    className="input-field grow" 
+                                    className="input-field grow"
                                     placeholder="300 1234567"
                                 />
                             </div>
                         </div>
 
-                        <button 
-                            type="submit" 
-                            disabled={isLoading}
+                        <button
+                            type="submit"
+                            disabled={isLoading || (!!confirmPassword && password !== confirmPassword)}
                             className="btn-primary w-full py-4 rounded-full font-black uppercase tracking-widest text-xs shadow-glow group"
                         >
                             <span className="flex items-center justify-center gap-2">
@@ -159,7 +227,7 @@ const SignUpPage: React.FC = () => {
                         </div>
 
                         <div className="grid grid-cols-2 gap-4">
-                            <a 
+                            <a
                                 href="https://accounts.google.com/v3/signin/identifier?continue=https%3A%2F%2Fwww.google.com%2Fsearch%3Fq%3Dsignin%26oq%3Dsignin%26gs_lcrp%3DEgZjaHJvbWUyBggAEEUYOTIHCAEQABiPAjIHCAIQABiPAjIGCAMQLhhA0gEIMTc4MWowajGoAgCwAgA%26sourceid%3Dchrome%26ie%3DUTF-8%26sei%3DO_jQaaXCNLS69u8PmcOnuQE&dsh=S-1491538570%3A1775302717950035&ec=futura_srp_og_si_72236_p&hl=en&passive=true&flowName=GlifWebSignIn&flowEntry=ServiceLogin&ifkv=AT1y2_W4bWA3IbXsAHj8fhWHL0t-30PrKtDo-Irgp_HIA-GT5Us67xPVyOqDEcUzTZYsEyVbIQlc"
                                 target="_blank"
                                 rel="noopener noreferrer"

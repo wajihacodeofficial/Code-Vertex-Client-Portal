@@ -33,7 +33,7 @@ const LoginPage: React.FC = () => {
     setIsLoading(true);
     
     try {
-      const userRole = await login(email, portalType);
+      const userRole = await login(email, password, portalType);
       
       // Strict role-based redirect logic
       if (userRole === 'admin') {
