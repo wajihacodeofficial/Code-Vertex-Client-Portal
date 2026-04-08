@@ -47,7 +47,8 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
 -- Allow service role (backend) full access (bypasses RLS)
 -- Frontend only reads its own profile via authenticated JWT
-CREATE POLICY IF NOT EXISTS "Users can read own profile" 
+DROP POLICY IF EXISTS "Users can read own profile" ON users;
+CREATE POLICY "Users can read own profile" 
     ON users FOR SELECT 
     USING (auth.uid() = supabase_uid);
 
