@@ -2,14 +2,14 @@ const nodemailer = require('nodemailer');
 const supabase = require('./db');
 require('dotenv').config();
 
-// ─── Zoho SMTP Transporter ───────────────────────────────────
+// ─── SMTP Transporter ───────────────────────────────────
 const transporter = nodemailer.createTransport({
-    host: 'smtp.zoho.com',
-    port: 465,
-    secure: true, // SSL
+    host: process.env.SMTP_HOST || 'smtp.zoho.com',
+    port: parseInt(process.env.SMTP_PORT) || 465,
+    secure: process.env.SMTP_SECURE !== 'false', // Defaults to true for 465
     auth: {
-        user: process.env.ZOHO_EMAIL,
-        pass: process.env.ZOHO_PASSWORD,
+        user: process.env.SMTP_USER || process.env.ZOHO_EMAIL,
+        pass: process.env.SMTP_PASS || process.env.ZOHO_PASSWORD,
     },
 });
 
@@ -51,9 +51,12 @@ async function sendOTP(email) {
         throw new Error('Failed to store OTP: ' + insertError.message);
     }
 
-    // Send OTP via Zoho SMTP
+    // Send OTP via SMTP
+    const senderName = process.env.MAIL_FROM || process.env.ZOHO_FROM_NAME || 'Code Vertex';
+    const senderEmail = process.env.SMTP_USER || process.env.ZOHO_EMAIL;
+
     await transporter.sendMail({
-        from: `"${process.env.ZOHO_FROM_NAME || 'Code Vertex'}" <${process.env.ZOHO_EMAIL}>`,
+        from: `"${senderName}" <${senderEmail}>`,
         to: email,
         subject: 'Your Code Vertex Verification Code',
         html: `
