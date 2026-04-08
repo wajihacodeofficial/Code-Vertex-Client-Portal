@@ -1,8 +1,10 @@
 import axios from 'axios';
 
-// Automatically strip trailing /api from VITE_API_URL if the user mistakenly added it in Vercel settings
-let RAW_API_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-if (RAW_API_URL.endsWith('/api')) {
+// If VITE_API_URL is provided, use it. Otherwise, in Production use the same domain (relative), in Dev use localhost:5000.
+let RAW_API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:5000');
+
+// Automatically strip trailing /api if the user mistakenly added it
+if (RAW_API_URL && RAW_API_URL.endsWith('/api')) {
     RAW_API_URL = RAW_API_URL.slice(0, -4);
 }
 
