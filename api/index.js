@@ -215,12 +215,12 @@ app.post('/api/auth/login', async (req, res) => {
         if (authError) {
             // Supabase returns 'Invalid login credentials' for wrong email/password
             if (authError.message.includes('Invalid login credentials') || authError.status === 400) {
-                return res.status(401).json({ error: 'Invalid email or password.' });
+                return res.json({ success: false, error: 'Invalid email or password.' });
             }
             if (authError.message.includes('Email not confirmed')) {
-                return res.status(403).json({ error: 'Please verify your email first. Check your inbox for the verification code.' });
+                return res.json({ success: false, error: 'Please verify your email first. Check your inbox for the verification code.' });
             }
-            return res.status(401).json({ error: authError.message });
+            return res.json({ success: false, error: authError.message });
         }
 
         // Step 2: Check email verification status in our DB
@@ -231,20 +231,20 @@ app.post('/api/auth/login', async (req, res) => {
             .single();
 
         if (profileError || !userProfile) {
-            return res.status(404).json({ error: 'User not found.' });
+            return res.json({ success: false, error: 'Invalid email or password.' });
         }
 
         if (!userProfile.email_verified) {
-            return res.status(403).json({ error: 'Please verify your email first. Check your inbox for the verification code.' });
+            return res.json({ success: false, error: 'Please verify your email first. Check your inbox for the verification code.' });
         }
 
         // Step 3: Check account status
         if (userProfile.status === 'pending') {
-            return res.status(403).json({ error: 'Your account is awaiting admin approval. You will be notified once approved.' });
+            return res.json({ success: false, error: 'Your account is awaiting admin approval. You will be notified once approved.' });
         }
 
         if (userProfile.status === 'rejected') {
-            return res.status(403).json({ error: 'Your account has been rejected. Please contact support.' });
+            return res.json({ success: false, error: 'Your account has been rejected. Please contact support.' });
         }
 
         // Step 4: Role validation
@@ -252,7 +252,8 @@ app.post('/api/auth/login', async (req, res) => {
             // Allow admin to log in as team
             const isAdminAsTeam = userProfile.role === 'admin' && requestedRole === 'team';
             if (!isAdminAsTeam) {
-                return res.status(403).json({
+                return res.json({
+                    success: false,
                     error: `Role mismatch. This is a ${userProfile.role} account.`
                 });
             }
@@ -260,6 +261,7 @@ app.post('/api/auth/login', async (req, res) => {
 
         // Step 5: Return session + profile
         res.json({
+            success: true,
             message: 'Login successful.',
             session: authData.session, // Contains access_token (JWT)
             user: {

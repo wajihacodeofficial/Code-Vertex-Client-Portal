@@ -84,6 +84,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const login = async (email: string, password: string, role: UserRole): Promise<UserRole> => {
         const { data } = await api.post('/api/auth/login', { email, password, role });
 
+        if (data.success === false) {
+            throw new Error(data.error || 'Login failed.');
+        }
+
         const loggedInUser: User = data.user;
 
         // Persist session + profile
