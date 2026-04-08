@@ -54,36 +54,57 @@ async function sendOTP(email) {
     // Send OTP via SMTP
     const senderName = process.env.MAIL_FROM || process.env.ZOHO_FROM_NAME || 'Code Vertex';
     const senderEmail = process.env.SMTP_USER || process.env.ZOHO_EMAIL;
+    const senderPassword = process.env.SMTP_PASS || process.env.ZOHO_PASSWORD;
 
-    await transporter.sendMail({
-        from: `"${senderName}" <${senderEmail}>`,
-        to: email,
-        subject: 'Your Code Vertex Verification Code',
-        html: `
-            <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #0f0f0f; border-radius: 16px; overflow: hidden; border: 1px solid #1f1f1f;">
-                <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 32px; text-align: center;">
-                    <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.5px;">Code Vertex</h1>
-                    <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: 2px;">Email Verification</p>
-                </div>
-                <div style="padding: 40px 32px; text-align: center;">
-                    <p style="color: #a0a0a0; font-size: 15px; margin: 0 0 28px; line-height: 1.6;">
-                        Use the code below to verify your email address.<br/>
-                        This code expires in <strong style="color: #22c55e;">5 minutes</strong>.
-                    </p>
-                    <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 28px; margin: 0 auto 28px; display: inline-block; min-width: 200px;">
-                        <span style="font-size: 42px; font-weight: 900; letter-spacing: 12px; color: #22c55e; font-family: 'Courier New', monospace;">${otp}</span>
+    // Fallback Mode: If credentials are placeholders, just log the OTP to console
+    const isPlaceholder = !senderEmail || 
+                          senderEmail.includes('your_email') || 
+                          !senderPassword || 
+                          senderPassword.includes('your_zoho');
+
+    if (isPlaceholder) {
+        console.log('\n================================================');
+        console.log(`📧  [SMTP FALLBACK] Verification Code for ${email}:`);
+        console.log(`👉  CODE: ${otp}`);
+        console.log('================================================\n');
+        return;
+    }
+
+    try {
+        await transporter.sendMail({
+            from: `"${senderName}" <${senderEmail}>`,
+            to: email,
+            subject: 'Your Code Vertex Verification Code',
+            html: `
+                <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #0f0f0f; border-radius: 16px; overflow: hidden; border: 1px solid #1f1f1f;">
+                    <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 32px; text-align: center;">
+                        <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.5px;">Code Vertex</h1>
+                        <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: 2px;">Email Verification</p>
                     </div>
-                    <p style="color: #666; font-size: 12px; margin: 0; line-height: 1.6;">
-                        If you didn't request this, please ignore this email.<br/>
-                        Never share this code with anyone.
-                    </p>
+                    <div style="padding: 40px 32px; text-align: center;">
+                        <p style="color: #a0a0a0; font-size: 15px; margin: 0 0 28px; line-height: 1.6;">
+                            Use the code below to verify your email address.<br/>
+                            This code expires in <strong style="color: #22c55e;">5 minutes</strong>.
+                        </p>
+                        <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 28px; margin: 0 auto 28px; display: inline-block; min-width: 200px;">
+                            <span style="font-size: 42px; font-weight: 900; letter-spacing: 12px; color: #22c55e; font-family: 'Courier New', monospace;">${otp}</span>
+                        </div>
+                        <p style="color: #666; font-size: 12px; margin: 0; line-height: 1.6;">
+                            If you didn't request this, please ignore this email.<br/>
+                            Never share this code with anyone.
+                        </p>
+                    </div>
+                    <div style="padding: 20px 32px; border-top: 1px solid #1f1f1f; text-align: center;">
+                        <p style="color: #444; font-size: 11px; margin: 0;">© ${new Date().getFullYear()} Code Vertex · <a href="https://codevertex.solutions" style="color: #22c55e; text-decoration: none;">codevertex.solutions</a></p>
+                    </div>
                 </div>
-                <div style="padding: 20px 32px; border-top: 1px solid #1f1f1f; text-align: center;">
-                    <p style="color: #444; font-size: 11px; margin: 0;">© ${new Date().getFullYear()} Code Vertex · <a href="https://codevertex.solutions" style="color: #22c55e; text-decoration: none;">codevertex.solutions</a></p>
-                </div>
-            </div>
-        `,
-    });
+            `,
+        });
+    } catch (smtpErr) {
+        console.error('❌  [SMTP Error] Failed to send email:', smtpErr.message);
+        console.log(`👉  FALLBACK CODE FOR ${email}: ${otp}`);
+        // We log it and continue so the user account creation isn't blocked by email failure
+    }
 }
 
 /**

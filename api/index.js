@@ -77,6 +77,7 @@ app.post('/api/auth/signup', async (req, res) => {
                 phone: phone || null,
                 status,
                 email_verified: false,
+                password_hash: 'SUPABASE_AUTH_MANAGED', // Satisfy legacy DB constraint
             });
 
         if (dbError) {
@@ -93,8 +94,12 @@ app.post('/api/auth/signup', async (req, res) => {
             email: email.toLowerCase(),
         });
     } catch (err) {
-        console.error('[Signup Error]', err);
-        res.status(500).json({ error: 'Signup failed. Please try again.' });
+        console.error('❌  [Signup Error]:', err);
+        const errorMessage = err.message || 'Signup failed. Please try again.';
+        res.status(500).json({ 
+            error: 'Signup failed. Internal Server Error.',
+            details: process.env.NODE_ENV === 'production' ? null : errorMessage
+        });
     }
 });
 
