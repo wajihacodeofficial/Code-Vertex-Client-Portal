@@ -11,6 +11,8 @@ import TeamLayout from './layouts/TeamLayout';
 // Direct imports for absolute performance
 import LoginPage from './pages/LoginPage';
 import SignUpPage from './pages/SignUpPage';
+import ForgotPasswordPage from './pages/ForgotPasswordPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerificationPage from './pages/VerificationPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import AwaitingApproval from './pages/AwaitingApproval';
@@ -88,6 +90,8 @@ const AppRoutes = () => {
     <Routes>
         <Route path="/login" element={<NoAuthRoute><LoginPage /></NoAuthRoute>} />
         <Route path="/signup" element={<NoAuthRoute><SignUpPage /></NoAuthRoute>} />
+        <Route path="/forgot-password" element={<NoAuthRoute><ForgotPasswordPage /></NoAuthRoute>} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify-email" element={<VerificationPage />} />
         <Route path="/reset-password" element={<NoAuthRoute><ResetPasswordPage /></NoAuthRoute>} />
         <Route path="/awaiting-approval" element={<AwaitingApproval />} />
