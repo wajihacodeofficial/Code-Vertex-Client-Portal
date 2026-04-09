@@ -106,7 +106,7 @@ const LoginPage: React.FC = () => {
             <div className="space-y-2">
               <div className="flex justify-between items-center px-1">
                 <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest">Password</label>
-                <button type="button" className="text-[10px] text-primary hover:underline font-bold uppercase tracking-widest">Forgot Password?</button>
+                <Link to="/forgot-password" className="text-[10px] text-primary hover:underline font-bold uppercase tracking-widest">Forgot Password?</Link>
               </div>
               <div className="relative group">
                 <input 

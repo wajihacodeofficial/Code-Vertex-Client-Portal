@@ -25,6 +25,8 @@ interface AuthContextType {
     allUsers: User[];
     approveUser: (id: string) => Promise<void>;
     rejectUser: (id: string) => Promise<void>;
+    resetPassword: (email: string) => Promise<void>;
+    updatePassword: (password: string) => Promise<void>;
 }
 
 // ─── Context ────────────────────────────────────────────────────────────────
@@ -153,6 +155,29 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    // ── Password Reset ───────────────────────────────────────────────────────
+    const resetPassword = async (email: string): Promise<void> => {
+        try {
+            await api.post('/api/auth/forgot-password', { email });
+            toast.success('Password reset link sent! Please check your email.');
+        } catch (err: unknown) {
+            const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+            toast.error(message || 'Failed to send reset link');
+            throw err;
+        }
+    };
+
+    const updatePassword = async (password: string): Promise<void> => {
+        try {
+            await api.post('/api/auth/reset-password', { password });
+            toast.success('Password updated successfully');
+        } catch (err: unknown) {
+            const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+            toast.error(message || 'Failed to update password');
+            throw err;
+        }
+    };
+
     return (
         <AuthContext.Provider value={{
             user,
@@ -164,6 +189,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             allUsers,
             approveUser,
             rejectUser,
+            resetPassword,
+            updatePassword,
         }}>
             {children}
         </AuthContext.Provider>

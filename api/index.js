@@ -281,6 +281,72 @@ app.post('/api/auth/login', async (req, res) => {
 });
 
 /**
+ * POST /api/auth/forgot-password
+ * Triggers a password reset email via Supabase.
+ */
+app.post('/api/auth/forgot-password', async (req, res) => {
+    const { email } = req.body;
+
+    if (!email) {
+        return res.status(400).json({ error: 'Email is required.' });
+    }
+
+    try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.toLowerCase(), {
+            redirectTo: `${process.env.FRONTEND_URL || 'http://localhost:5173'}/reset-password`,
+        });
+
+        if (error) {
+            return res.status(400).json({ error: error.message });
+        }
+
+        res.json({ message: 'Password reset link sent successfully.' });
+    } catch (err) {
+        console.error('[Forgot Password Error]', err);
+        res.status(500).json({ error: 'Failed to send reset link.' });
+    }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Updates the user password. Requires a valid session JWT in headers.
+ */
+app.post('/api/auth/reset-password', async (req, res) => {
+    const { password } = req.body;
+    const token = req.headers.authorization?.replace('Bearer ', '');
+
+    if (!password) {
+        return res.status(400).json({ error: 'New password is required.' });
+    }
+
+    if (!token) {
+        return res.status(401).json({ error: 'Unauthenticated reset attempt.' });
+    }
+
+    try {
+        // Update user password in Supabase Auth using their session token
+        const { error } = await supabase.auth.admin.updateUserById(
+            // We need to parse the token to get user ID or use the authenticated context
+            // For simplicity with service role, we can use the user's token directly if the client passes it
+            // But since this is a proxy, we should ideally verify the token first.
+            // However, Supabase admin client can update by ID.
+            // Let's get the user from the token first.
+            (await supabase.auth.getUser(token)).data.user.id,
+            { password }
+        );
+
+        if (error) {
+            return res.status(400).json({ error: error.message });
+        }
+
+        res.json({ message: 'Password updated successfully.' });
+    } catch (err) {
+        console.error('[Reset Password Error]', err);
+        res.status(500).json({ error: 'Failed to update password.' });
+    }
+});
+
+/**
  * POST /api/auth/logout
  * Signs out the current user from Supabase Auth.
  */
