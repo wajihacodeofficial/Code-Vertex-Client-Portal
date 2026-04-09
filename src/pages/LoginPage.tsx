@@ -13,8 +13,9 @@ const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [portalType, setPortalType] = useState<'client' | 'team' | 'admin'>('client');
   const [isLoading, setIsLoading] = useState(false);
-  
-  const { login, isAuthenticated, user } = useAuth();
+  const [isForgotPassword, setIsForgotPassword] = useState(false);
+
+  const { login, forgotPassword, isAuthenticated, user } = useAuth();
   const navigate = useNavigate();
 
   React.useEffect(() => {
@@ -30,6 +31,20 @@ const LoginPage: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isForgotPassword) {
+      setIsLoading(true);
+      try {
+        await forgotPassword(email);
+        setIsForgotPassword(false);
+      } catch (err: any) {
+        toast.error(err.message || 'Failed to send reset link.');
+      } finally {
+        setIsLoading(false);
+      }
+      return;
+    }
+
     setIsLoading(true);
     
     try {
@@ -70,25 +85,31 @@ const LoginPage: React.FC = () => {
               <Globe size={12} className="group-hover:text-primary transition-colors" />
               Visit Main Website
             </a>
-            <h1 className="text-3xl text-text-primary font-display tracking-tight heading-gradient">Welcome Back</h1>
-            <p className="text-text-muted text-sm mt-3 font-medium tracking-wide">Enter your credentials to access your portal</p>
+            <h1 className="text-3xl text-text-primary font-display tracking-tight heading-gradient">
+              {isForgotPassword ? 'Reset Password' : 'Welcome Back'}
+            </h1>
+            <p className="text-text-muted text-sm mt-3 font-medium tracking-wide">
+              {isForgotPassword ? 'Enter your email to receive a reset link' : 'Enter your credentials to access your portal'}
+            </p>
           </div>
 
-          <div className="flex bg-white/5 p-1 rounded-xl mb-8 border border-white/5">
-            {(['client', 'team'] as const).map((type) => (
-              <button
-                key={type}
-                onClick={() => setPortalType(type)}
-                className={`flex-1 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
-                  portalType === type 
-                    ? 'bg-primary text-black shadow-glow shadow-primary/20' 
-                    : 'text-text-muted hover:text-text-primary'
-                }`}
-              >
-                {type}
-              </button>
-            ))}
-          </div>
+          {!isForgotPassword && (
+            <div className="flex bg-white/5 p-1 rounded-xl mb-8 border border-white/5">
+              {(['client', 'team'] as const).map((type) => (
+                <button
+                  key={type}
+                  onClick={() => setPortalType(type)}
+                  className={`flex-1 py-2.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                    portalType === type 
+                      ? 'bg-primary text-black shadow-glow shadow-primary/20' 
+                      : 'text-text-muted hover:text-text-primary'
+                  }`}
+                >
+                  {type}
+                </button>
+              ))}
+            </div>
+          )}
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div className="space-y-2">
@@ -103,29 +124,31 @@ const LoginPage: React.FC = () => {
               />
             </div>
 
-            <div className="space-y-2">
-              <div className="flex justify-between items-center px-1">
-                <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest">Password</label>
-                <button type="button" className="text-[10px] text-primary hover:underline font-bold uppercase tracking-widest">Forgot Password?</button>
+            {!isForgotPassword && (
+              <div className="space-y-2">
+                <div className="flex justify-between items-center px-1">
+                  <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest">Password</label>
+                  <button type="button" onClick={() => setIsForgotPassword(true)} className="text-[10px] text-primary hover:underline font-bold uppercase tracking-widest">Forgot Password?</button>
+                </div>
+                <div className="relative group">
+                  <input 
+                    type={showPassword ? "text" : "password"} 
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="input-field w-full pr-12" 
+                    placeholder="••••••••"
+                    required={!isForgotPassword}
+                  />
+                  <button 
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
+                  >
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
               </div>
-              <div className="relative group">
-                <input 
-                  type={showPassword ? "text" : "password"} 
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  className="input-field w-full pr-12" 
-                  placeholder="••••••••"
-                  required
-                />
-                <button 
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-4 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary transition-colors"
-                >
-                  {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
-                </button>
-              </div>
-            </div>
+            )}
 
             <button 
               type="submit" 
@@ -133,15 +156,21 @@ const LoginPage: React.FC = () => {
               className="btn-primary w-full py-4 rounded-full font-black uppercase tracking-widest text-xs shadow-glow group"
             >
               <span className="flex items-center justify-center gap-2">
-                {isLoading ? 'Authenticating...' : `Sign in to ${portalType} portal`}
+                {isLoading 
+                  ? (isForgotPassword ? 'Sending...' : 'Authenticating...') 
+                  : (isForgotPassword ? 'Send Reset Link' : `Sign in to ${portalType} portal`)}
                 {!isLoading && <ArrowRight size={18} className="group-hover:translate-x-1 transition-transform" />}
               </span>
             </button>
 
             <div className="text-center pt-4">
-              <p className="text-sm text-text-muted">
-                New to Code Vertex? <Link to="/signup" className="text-primary hover:underline font-bold transition-all ml-1">Create Account</Link>
-              </p>
+              {isForgotPassword ? (
+                <button type="button" onClick={() => setIsForgotPassword(false)} className="text-sm text-primary hover:underline font-bold transition-all">Back to Login</button>
+              ) : (
+                <p className="text-sm text-text-muted">
+                  New to Code Vertex? <Link to="/signup" className="text-primary hover:underline font-bold transition-all ml-1">Create Account</Link>
+                </p>
+              )}
             </div>
           </form>
 

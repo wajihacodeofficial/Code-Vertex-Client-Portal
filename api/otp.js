@@ -147,4 +147,84 @@ async function verifyOTP(email, otpCode) {
     return { valid: true };
 }
 
-module.exports = { sendOTP, verifyOTP };
+/**
+ * Stores a token in the database and sends a password reset link via Zoho SMTP.
+ * @param {string} email
+ * @returns {Promise<void>}
+ */
+async function sendPasswordResetLink(email) {
+    const otpCode = generateOTP(); // We use the same 6-digit OTP generator for the token
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes max
+    
+    // Invalidate previous
+    await supabase
+        .from('otp_verifications')
+        .update({ used: true })
+        .eq('email', email.toLowerCase())
+        .eq('used', false);
+        
+    // Insert new
+    const { error: insertError } = await supabase
+        .from('otp_verifications')
+        .insert({
+            email: email.toLowerCase(),
+            otp_code: otpCode,
+            expires_at: expiresAt.toISOString(),
+            used: false,
+        });
+
+    if (insertError) {
+        throw new Error('Failed to store password reset token: ' + insertError.message);
+    }
+    
+    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const resetLink = `${frontendUrl}/reset-password?token=${otpCode}&email=${encodeURIComponent(email.toLowerCase())}`;
+    
+    const senderName = process.env.MAIL_FROM || process.env.ZOHO_FROM_NAME || 'Code Vertex';
+    const senderEmail = process.env.SMTP_USER || process.env.ZOHO_EMAIL;
+    const senderPassword = process.env.SMTP_PASS || process.env.ZOHO_PASSWORD;
+
+    const isPlaceholder = !senderEmail || 
+                          senderEmail.includes('your_email') || 
+                          !senderPassword || 
+                          senderPassword.includes('your_zoho');
+
+    if (isPlaceholder) {
+        console.log('\n================================================');
+        console.log(`📧  [SMTP FALLBACK] Password Reset Link for ${email}:`);
+        console.log(`👉  LINK: ${resetLink}`);
+        console.log('================================================\n');
+        return;
+    }
+
+    try {
+        await transporter.sendMail({
+            from: `"${senderName}" <${senderEmail}>`,
+            to: email,
+            subject: 'Password Reset - Code Vertex',
+            html: `
+                <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #0f0f0f; border-radius: 16px; overflow: hidden; border: 1px solid #1f1f1f;">
+                    <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 32px; text-align: center;">
+                        <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.5px;">Code Vertex</h1>
+                        <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: 2px;">Password Reset</p>
+                    </div>
+                    <div style="padding: 40px 32px; text-align: center;">
+                        <p style="color: #a0a0a0; font-size: 15px; margin: 0 0 28px; line-height: 1.6;">
+                            We received a request to reset your password.<br/>
+                            Click the button below to choose a new password. This link expires in <strong style="color: #22c55e;">15 minutes</strong>.
+                        </p>
+                        <a href="${resetLink}" style="display: inline-block; background: #22c55e; color: #000; font-weight: 900; text-decoration: none; padding: 16px 32px; border-radius: 8px; text-transform: uppercase; letter-spacing: 1px; font-size: 14px; margin-bottom: 28px;">Reset Password</a>
+                        <p style="color: #666; font-size: 12px; margin: 0; line-height: 1.6;">
+                            If you didn't request a password reset, you can safely ignore this email.
+                        </p>
+                    </div>
+                </div>
+            `,
+        });
+    } catch (smtpErr) {
+        console.error('❌  [SMTP Error] Failed to send password reset email:', smtpErr.message);
+        console.log(`👉  FALLBACK LINK FOR ${email}: ${resetLink}`);
+    }
+}
+
+module.exports = { sendOTP, verifyOTP, sendPasswordResetLink };

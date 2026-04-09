@@ -25,6 +25,8 @@ interface AuthContextType {
     allUsers: User[];
     approveUser: (id: string) => Promise<void>;
     rejectUser: (id: string) => Promise<void>;
+    forgotPassword: (email: string) => Promise<void>;
+    resetPassword: (email: string, token: string, newPassword: string) => Promise<void>;
 }
 
 // ─── Context ────────────────────────────────────────────────────────────────
@@ -153,6 +155,30 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    // ── Forgot Password ───────────────────────────────────────────────────────
+    const forgotPassword = async (email: string): Promise<void> => {
+        try {
+            const { data } = await api.post('/api/auth/forgot-password', { email });
+            if (data.error) throw new Error(data.error);
+            toast.success('If an account exists, a reset link has been sent to your email.');
+        } catch (err: any) {
+            const message = err.response?.data?.error || err.message;
+            throw new Error(message || 'Failed to send reset link');
+        }
+    };
+
+    // ── Reset Password ────────────────────────────────────────────────────────
+    const resetPassword = async (email: string, token: string, newPassword: string): Promise<void> => {
+        try {
+            const { data } = await api.post('/api/auth/reset-password', { email, token, newPassword });
+            if (data.error) throw new Error(data.error);
+            toast.success('Password reset successfully! You can now log in.');
+        } catch (err: any) {
+            const message = err.response?.data?.error || err.message;
+            throw new Error(message || 'Failed to reset password');
+        }
+    };
+
     return (
         <AuthContext.Provider value={{
             user,
@@ -164,6 +190,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             allUsers,
             approveUser,
             rejectUser,
+            forgotPassword,
+            resetPassword,
         }}>
             {children}
         </AuthContext.Provider>

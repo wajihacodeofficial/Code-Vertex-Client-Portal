@@ -3,7 +3,7 @@ const cors = require('cors');
 require('dotenv').config();
 
 const supabase = require('./db');
-const { sendOTP, verifyOTP } = require('./otp');
+const { sendOTP, verifyOTP, sendPasswordResetLink } = require('./otp');
 
 const app = express();
 
@@ -277,6 +277,85 @@ app.post('/api/auth/login', async (req, res) => {
     } catch (err) {
         console.error('[Login Error]', err);
         res.status(500).json({ error: 'Login failed. Please try again.' });
+    }
+});
+
+/**
+ * POST /api/auth/forgot-password
+ * Generates a password reset link and sends it via email.
+ */
+app.post('/api/auth/forgot-password', async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json({ error: 'Email is required.' });
+    }
+
+    try {
+        const { data: user } = await supabase
+            .from('users')
+            .select('email')
+            .eq('email', email.toLowerCase())
+            .single();
+
+        if (!user) {
+            // Return success even if user not found to prevent email enumeration
+            return res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+        }
+
+        await sendPasswordResetLink(email.toLowerCase());
+        res.json({ message: 'If an account with that email exists, a password reset link has been sent.' });
+    } catch (err) {
+        console.error('[Forgot Password Error]', err);
+        res.status(500).json({ error: 'Failed to process forgot password request.' });
+    }
+});
+
+/**
+ * POST /api/auth/reset-password
+ * Verifies the token and updates the user's password.
+ */
+app.post('/api/auth/reset-password', async (req, res) => {
+    const { email, token, newPassword } = req.body;
+
+    if (!email || !token || !newPassword) {
+        return res.status(400).json({ error: 'Email, token, and new password are required.' });
+    }
+
+    if (newPassword.length < 8) {
+        return res.status(400).json({ error: 'Password must be at least 8 characters.' });
+    }
+
+    try {
+        // 1. Verify token
+        const result = await verifyOTP(email.toLowerCase(), token);
+        if (!result.valid) {
+            return res.status(400).json({ error: result.error || 'Invalid or expired token' });
+        }
+
+        // 2. Find user in Supabase Auth
+        const { data: authUsers, error: listError } = await supabase.auth.admin.listUsers();
+        if (listError) {
+            return res.status(500).json({ error: 'Failed to access user accounts.' });
+        }
+
+        const authUser = authUsers.users.find(u => u.email === email.toLowerCase());
+        if (!authUser) {
+            return res.status(404).json({ error: 'User not found.' });
+        }
+
+        // 3. Update password
+        const { error: updateError } = await supabase.auth.admin.updateUserById(authUser.id, {
+            password: newPassword,
+        });
+
+        if (updateError) {
+            return res.status(400).json({ error: updateError.message });
+        }
+
+        res.json({ message: 'Password has been successfully reset.' });
+    } catch (err) {
+        console.error('[Reset Password Error]', err);
+        res.status(500).json({ error: 'Failed to reset password.' });
     }
 });
 
