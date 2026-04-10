@@ -33,8 +33,9 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
             await fetchProjects();
             toast.success('Project explicitly created and scoped successfully!');
             onClose();
-        } catch (err: any) {
-            toast.error(err.response?.data?.error || 'Failed to create project');
+        } catch (err) {
+            const error = err as any;
+            toast.error(error.response?.data?.error || 'Failed to create project');
         }
     };
 
@@ -65,7 +66,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                     {step === 1 && (
                         <div className="space-y-5 animate-in">
                             <div>
-                                <label className="flex text-xs font-bold text-text-muted uppercase tracking-widest mb-2 flex items-center gap-2"><FileText size={14}/> Project Name</label>
+                                <label className="flex text-xs font-bold text-text-muted uppercase tracking-widest mb-2 items-center gap-2"><FileText size={14}/> Project Name</label>
                                 <input 
                                     type="text" 
                                     className="input-field w-full" 
@@ -76,7 +77,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                                 />
                             </div>
                             <div>
-                                <label className="flex text-xs font-bold text-text-muted uppercase tracking-widest mb-2 flex items-center gap-2"><User size={14}/> Assign Client Account</label>
+                                <label className="flex text-xs font-bold text-text-muted uppercase tracking-widest mb-2 items-center gap-2"><User size={14}/> Assign Client Account</label>
                                 <select 
                                     className="input-field w-full cursor-pointer text-text-primary" 
                                     value={selectedClient}
@@ -90,11 +91,11 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="flex text-xs font-bold text-text-muted uppercase tracking-widest mb-2 flex items-center gap-2"><Calendar size={14}/> Start Date</label>
+                                    <label className="flex text-xs font-bold text-text-muted uppercase tracking-widest mb-2 items-center gap-2"><Calendar size={14}/> Start Date</label>
                                     <input type="date" className="input-field w-full text-text-primary" required />
                                 </div>
                                 <div>
-                                    <label className="flex text-xs font-bold text-text-muted uppercase tracking-widest mb-2 flex items-center gap-2"><Calendar size={14}/> Estimated Deadline</label>
+                                    <label className="flex text-xs font-bold text-text-muted uppercase tracking-widest mb-2 items-center gap-2"><Calendar size={14}/> Estimated Deadline</label>
                                     <input 
                                         type="date" 
                                         className="input-field w-full text-text-primary" 
@@ -125,12 +126,12 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                             </div>
                             
                             <div>
-                                <label className="flex text-xs font-bold text-success uppercase tracking-widest mb-2 flex items-center gap-2"><CheckCircle2 size={14}/> Included Features (One per line)</label>
+                                <label className="flex text-xs font-bold text-success uppercase tracking-widest mb-2 items-center gap-2"><CheckCircle2 size={14}/> Included Features (One per line)</label>
                                 <textarea className="input-field w-full h-24 resize-none text-text-primary border-success/30 focus:border-success/50" placeholder="- User Authentication&#10;- Stripe Payments&#10;- Basic Admin Dashboard" required></textarea>
                             </div>
                             
                             <div>
-                                <label className="flex text-xs font-bold text-red-400 uppercase tracking-widest mb-2 flex items-center gap-2"><X size={14}/> Explicitly Excluded (Crucial for Anti-Scope-Creep)</label>
+                                <label className="flex text-xs font-bold text-red-400 uppercase tracking-widest mb-2 items-center gap-2"><X size={14}/> Explicitly Excluded (Crucial for Anti-Scope-Creep)</label>
                                 <textarea className="input-field w-full h-24 resize-none text-text-primary border-red-500/30 focus:border-red-500/50" placeholder="- Mobile Applications&#10;- Multi-currency routing" required></textarea>
                             </div>
                         </div>

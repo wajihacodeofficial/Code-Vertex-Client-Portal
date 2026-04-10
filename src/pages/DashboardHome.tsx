@@ -14,7 +14,7 @@ import {
 import { useAuth } from '../context/AuthContext';
 
 
-const StatCard = ({ title, value, icon: Icon, trend, color, subtitle, to }: { title: string, value: string, icon: any, trend?: string, color: string, subtitle?: string, to: string }) => {
+const StatCard = ({ title, value, icon: Icon, trend, color, subtitle, to }: { title: string, value: string, icon: React.ElementType, trend?: string, color: string, subtitle?: string, to: string }) => {
   return (
     <Link to={to} className="block glass-card p-6 rounded-card border shadow-glow transition-all hover:border-white/10 group cursor-pointer hover:-translate-y-1 hover:bg-white/5">
       <div className="flex justify-between items-start">
@@ -108,7 +108,7 @@ const DashboardHome: React.FC = () => {
                 <div className="lg:col-span-2 space-y-6">
                     <div className="flex justify-between items-center px-2">
                         <h2 className="text-xl text-text-primary leading-none uppercase tracking-widest font-black">Active Projects</h2>
-                        <Link to="/projects" className="text-primary text-xs font-bold uppercase tracking-widest hover:underline text-primary">View All Projects</Link>
+                        <Link to="/projects" className="text-xs font-bold uppercase tracking-widest hover:underline text-primary">View All Projects</Link>
                     </div>
 
                     <div className="glass-card rounded-card border shadow-glow overflow-hidden">
