@@ -11,23 +11,26 @@ import {
   AlertCircle
 } from 'lucide-react';
 
+import { useAuth } from '../context/AuthContext';
+import dayjs from 'dayjs';
+
 const AdminInvoices: React.FC = () => {
+    const { invoices, adminStats } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateOpen, setIsCreateOpen] = useState(false);
 
-    // Mock Admin Invoices
-    const invoices = [
-        { id: 'INV-2026-001', client: 'LogistiX Corp', amount: 4500, date: 'Apr 02, 2026', due: 'Apr 16, 2026', status: 'Pending' },
-        { id: 'INV-2026-002', client: 'TechFlow', amount: 12500, date: 'Mar 15, 2026', due: 'Mar 29, 2026', status: 'Paid' },
-        { id: 'INV-2026-003', client: 'E-Commerce Plus', amount: 3200, date: 'Mar 10, 2026', due: 'Mar 24, 2026', status: 'Overdue' },
-        { id: 'INV-2026-004', client: 'Alpha Designs', amount: 800, date: 'Apr 01, 2026', due: 'Apr 15, 2026', status: 'Draft' },
-    ];
+    const filteredInvoices = (invoices || []).filter(inv => 
+        inv.id.toLowerCase().includes(searchQuery.toLowerCase()) || 
+        inv.projects?.name?.toLowerCase().includes(searchQuery.toLowerCase())
+    );
 
     const getStatusStyle = (status: string) => {
         switch(status) {
             case 'Paid': return 'bg-success/10 text-success border-success/20';
+            case 'Sent': 
             case 'Pending': return 'bg-amber-500/10 text-amber-500 border-amber-500/20';
-            case 'Overdue': return 'bg-danger/10 text-danger border-danger/20';
+            case 'Overdue': 
+            case 'Unpaid': return 'bg-danger/10 text-danger border-danger/20';
             case 'Draft': return 'bg-white/10 text-text-muted border-white/20';
             default: return 'bg-white/5 text-text-muted';
         }
@@ -65,20 +68,28 @@ const AdminInvoices: React.FC = () => {
 
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="glass-card p-5 rounded-card border shadow-glow border-amber-400/20 bg-amber-400/5">
-                    <p className="text-[10px] text-amber-400 uppercase font-black tracking-widest flex items-center gap-2"><DollarSign size={12}/> Monthly Revenue</p>
-                    <h3 className="text-2xl font-display font-bold text-text-primary mt-2">$21,000</h3>
+                    <p className="text-[10px] text-amber-400 uppercase font-black tracking-widest flex items-center gap-2"><DollarSign size={12}/> Total Revenue</p>
+                    <h3 className="text-2xl font-display font-bold text-text-primary mt-2">
+                        ${(adminStats?.totalRevenue || 0).toLocaleString()}
+                    </h3>
                 </div>
                 <div className="glass-card p-5 rounded-card border border-white/5">
-                    <p className="text-[10px] text-text-muted uppercase font-black tracking-widest">Total Outstanding</p>
-                    <h3 className="text-2xl font-display font-bold text-text-primary mt-1">$7,700</h3>
+                    <p className="text-[10px] text-text-muted uppercase font-black tracking-widest">Active Projects</p>
+                    <h3 className="text-2xl font-display font-bold text-text-primary mt-1">
+                        {adminStats?.activeProjects || 0}
+                    </h3>
                 </div>
                 <div className="glass-card p-5 rounded-card border border-danger/20 bg-danger/5">
-                    <p className="text-[10px] text-danger uppercase font-black tracking-widest flex items-center gap-2"><AlertCircle size={12}/> Overdue Accounts</p>
-                    <h3 className="text-2xl font-display font-bold text-text-primary mt-1">1</h3>
+                    <p className="text-[10px] text-danger uppercase font-black tracking-widest flex items-center gap-2"><AlertCircle size={12}/> Pending Approvals</p>
+                    <h3 className="text-2xl font-display font-bold text-text-primary mt-1">
+                        {adminStats?.pendingApprovals || 0}
+                    </h3>
                 </div>
                 <div className="glass-card p-5 rounded-card border border-white/5">
-                    <p className="text-[10px] text-text-muted uppercase font-black tracking-widest">Drafts</p>
-                    <h3 className="text-2xl font-display font-bold text-text-primary mt-1">2</h3>
+                    <p className="text-[10px] text-text-muted uppercase font-black tracking-widest">Total Partners</p>
+                    <h3 className="text-2xl font-display font-bold text-text-primary mt-1">
+                        {adminStats?.activeClients || 0}
+                    </h3>
                 </div>
             </div>
 
@@ -96,24 +107,24 @@ const AdminInvoices: React.FC = () => {
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-white/5">
-                            {invoices.map(inv => (
+                        {filteredInvoices.map(inv => (
                                 <tr key={inv.id} className="hover:bg-white/2 transition-colors group cursor-pointer">
                                     <td className="px-6 py-4">
                                         <div className="flex items-center gap-3">
                                             <div className="p-2 rounded-lg bg-surface border border-white/10 text-text-muted group-hover:text-amber-400 transition-colors">
                                                 <FileText size={16} />
                                             </div>
-                                            <span className="text-sm font-bold text-text-primary">{inv.id}</span>
+                                            <span className="text-sm font-bold text-text-primary">{inv.id.slice(0, 8).toUpperCase()}</span>
                                         </div>
                                     </td>
-                                    <td className="px-6 py-4 text-sm font-medium text-text-primary">{inv.client}</td>
+                                    <td className="px-6 py-4 text-sm font-medium text-text-primary">{inv.projects?.name || 'General Project'}</td>
                                     <td className="px-6 py-4">
-                                        <span className="text-sm font-bold text-text-primary">${inv.amount.toLocaleString()}</span>
+                                        <span className="text-sm font-bold text-text-primary">${Number(inv.amount).toLocaleString()}</span>
                                     </td>
                                     <td className="px-6 py-4">
                                         <div className="flex flex-col gap-1">
-                                            <span className="text-xs text-text-primary">{inv.date}</span>
-                                            <span className="text-[10px] text-text-muted font-bold uppercase tracking-widest">Due: {inv.due}</span>
+                                            <span className="text-xs text-text-primary">{dayjs(inv.issue_date).format('MMM DD, YYYY')}</span>
+                                            <span className="text-[10px] text-text-muted font-bold uppercase tracking-widest">Due: {dayjs(inv.due_date).format('MMM DD, YYYY')}</span>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4">

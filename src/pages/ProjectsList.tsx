@@ -17,9 +17,9 @@ const ProjectsList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('All');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const { user } = useAuth();
+  const { user, projects } = useAuth();
 
-  const filteredProjects = mockProjects.filter(p => {
+  const filteredProjects = (projects || []).filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesTab = activeTab === 'All' || p.status === activeTab;
     return matchesSearch && matchesTab;
@@ -117,7 +117,7 @@ const ProjectsList: React.FC = () => {
                         <p className="text-text-muted text-sm mt-3 line-clamp-2 leading-relaxed">{project.description}</p>
                         
                         <div className="flex flex-wrap gap-2 mt-6">
-                            {project.techStack.map(tag => (
+                            {(project.techStack || []).map(tag => (
                                 <span key={tag} className="px-2.5 py-1 bg-white/5 border border-white/5 rounded-md text-[10px] font-bold text-text-muted uppercase tracking-tighter">
                                     {tag}
                                 </span>
@@ -127,7 +127,7 @@ const ProjectsList: React.FC = () => {
 
                     <div className="px-6 py-4 border-t border-white/5 flex items-center justify-between">
                         <div className="flex -space-x-2">
-                            {project.team.map((member, idx) => (
+                            {(project.team || []).map((member: any, idx: number) => (
                                 <img 
                                     key={idx}
                                     src={member.avatar} 
@@ -220,10 +220,10 @@ const ProjectsList: React.FC = () => {
                                 </td>
                                 <td className="px-6 py-5">
                                     <div className="flex -space-x-1.5">
-                                        {project.team.slice(0, 3).map((member, idx) => (
+                                        {(project.team || []).slice(0, 3).map((member: any, idx: number) => (
                                             <img key={idx} src={member.avatar} className="w-7 h-7 rounded-full border border-surface" alt="" />
                                         ))}
-                                        {project.team.length > 3 && (
+                                        {project.team?.length > 3 && (
                                             <div className="w-7 h-7 rounded-full bg-surface border border-white/10 flex items-center justify-center text-[10px] text-text-muted font-bold">
                                                 +{project.team.length - 3}
                                             </div>

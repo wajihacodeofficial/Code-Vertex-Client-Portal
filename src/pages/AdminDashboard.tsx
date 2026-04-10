@@ -3,7 +3,7 @@ import { Users, Briefcase, Activity, DollarSign, ArrowUpRight, CheckCircle } fro
 import { useAuth } from '../context/AuthContext';
 
 const AdminDashboard: React.FC = () => {
-  const { allUsers, approveUser, rejectUser } = useAuth();
+  const { allUsers, approveUser, rejectUser, adminStats } = useAuth();
   const pendingUsers = allUsers?.filter(u => u.status === 'pending') || [];
 
   return (
@@ -29,8 +29,10 @@ const AdminDashboard: React.FC = () => {
                 <DollarSign size={80} />
             </div>
             <p className="text-text-muted text-xs font-bold uppercase tracking-widest mb-2 relative z-10">Total Revenue</p>
-            <h3 className="text-3xl font-black text-text-primary relative z-10">$124,500</h3>
-            <p className="text-xs text-emerald font-bold mt-2 relative z-10">+14% this month</p>
+            <h3 className="text-3xl font-black text-text-primary relative z-10">
+                {adminStats ? `$${adminStats.totalRevenue.toLocaleString()}` : '$0'}
+            </h3>
+            <p className="text-xs text-emerald font-bold mt-2 relative z-10">{adminStats?.totalRevenue ? '+14% this month' : 'No data'}</p>
           </div>
 
           <div className="glass-card p-6 rounded-card border shadow-glow relative group overflow-hidden">
@@ -38,8 +40,10 @@ const AdminDashboard: React.FC = () => {
                 <Briefcase size={80} />
             </div>
             <p className="text-text-muted text-xs font-bold uppercase tracking-widest mb-2 relative z-10">Active Projects</p>
-            <h3 className="text-3xl font-black text-text-primary relative z-10">14</h3>
-            <p className="text-xs text-emerald font-bold mt-2 relative z-10">3 launching soon</p>
+            <h3 className="text-3xl font-black text-text-primary relative z-10">
+                {adminStats?.activeProjects || 0}
+            </h3>
+            <p className="text-xs text-emerald font-bold mt-2 relative z-10">Live operations</p>
           </div>
 
           <div className="glass-card p-6 rounded-card border shadow-glow relative group overflow-hidden">
@@ -47,8 +51,10 @@ const AdminDashboard: React.FC = () => {
                 <Users size={80} />
             </div>
             <p className="text-text-muted text-xs font-bold uppercase tracking-widest mb-2 relative z-10">Active Clients</p>
-            <h3 className="text-3xl font-black text-text-primary relative z-10">8</h3>
-            <p className="text-xs text-text-muted font-bold mt-2 relative z-10">2 new this week</p>
+            <h3 className="text-3xl font-black text-text-primary relative z-10">
+                {adminStats?.activeClients || 0}
+            </h3>
+            <p className="text-xs text-text-muted font-bold mt-2 relative z-10">Approved partners</p>
           </div>
 
           <div className="glass-card p-6 rounded-card border shadow-glow relative group overflow-hidden">

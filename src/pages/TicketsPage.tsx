@@ -9,13 +9,16 @@ import {
   Flag,
   X 
 } from 'lucide-react';
-import { tickets as mockTickets } from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
+import dayjs from 'dayjs';
+
 const TicketsPage: React.FC = () => {
+    const { tickets, user } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('All');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
 
-    const filteredTickets = mockTickets.filter(t => {
+    const filteredTickets = (tickets || []).filter(t => {
         const matchesSearch = t.subject.toLowerCase().includes(searchQuery.toLowerCase()) || 
                              t.id.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesTab = activeTab === 'All' || t.status === activeTab;
@@ -52,19 +55,19 @@ const TicketsPage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <div className="glass-card p-5 rounded-card border border-white/5">
                     <p className="text-[10px] text-text-muted uppercase font-black tracking-widest">Total Tickets</p>
-                    <h3 className="text-2xl font-display font-bold text-text-primary mt-1">{mockTickets.length}</h3>
+                    <h3 className="text-2xl font-display font-bold text-text-primary mt-1">{tickets?.length || 0}</h3>
                 </div>
                 <div className="glass-card p-5 rounded-card border border-primary/20 bg-primary/5">
                     <p className="text-[10px] text-primary uppercase font-black tracking-widest">Active/Open</p>
-                    <h3 className="text-2xl font-display font-bold text-text-primary mt-1">{mockTickets.filter(t => t.status === 'Open').length}</h3>
+                    <h3 className="text-2xl font-display font-bold text-text-primary mt-1">{tickets?.filter(t => t.status === 'Open').length || 0}</h3>
                 </div>
                 <div className="glass-card p-5 rounded-card border border-success/20 bg-success/5">
                     <p className="text-[10px] text-success uppercase font-black tracking-widest">Resolved</p>
-                    <h3 className="text-2xl font-display font-bold text-text-primary mt-1">{mockTickets.filter(t => t.status === 'Resolved').length}</h3>
+                    <h3 className="text-2xl font-display font-bold text-text-primary mt-1">{tickets?.filter(t => t.status === 'Resolved').length || 0}</h3>
                 </div>
                 <div className="glass-card p-5 rounded-card border border-danger/20 bg-danger/5">
-                    <p className="text-[10px] text-danger uppercase font-black tracking-widest">Critical/High</p>
-                    <h3 className="text-2xl font-display font-bold text-text-primary mt-1">{mockTickets.filter(t => t.priority === 'High' || t.priority === 'Critical').length}</h3>
+                    <p className="text-[10px] text-danger uppercase font-black tracking-widest">Urgent Actions</p>
+                    <h3 className="text-2xl font-display font-bold text-text-primary mt-1">{tickets?.filter(t => t.priority === 'Critical' || t.priority === 'High').length || 0}</h3>
                 </div>
             </div>
 
@@ -100,7 +103,7 @@ const TicketsPage: React.FC = () => {
                                 <div>
                                     <div className="flex items-center gap-3">
                                         <h3 className="text-text-primary font-bold leading-none">{ticket.subject}</h3>
-                                        <span className="text-[10px] text-text-muted font-bold px-2 py-0.5 bg-white/5 rounded">#{ticket.id}</span>
+                                        <span className="text-[10px] text-text-muted font-bold px-2 py-0.5 bg-white/5 rounded">#{ticket.id.slice(0, 8).toUpperCase()}</span>
                                     </div>
                                     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-3">
                                         <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest flex items-center gap-1.5">
@@ -112,11 +115,11 @@ const TicketsPage: React.FC = () => {
                                         </p>
                                         <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest flex items-center gap-1.5">
                                             <Flag size={12} />
-                                            Project: {ticket.project}
+                                            Project: {ticket.projects?.name || 'General Support'}
                                         </p>
                                         <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest flex items-center gap-1.5">
                                             <Clock size={12} />
-                                            Created: {ticket.created}
+                                            Created: {dayjs(ticket.created_at).format('MMM DD, YYYY')}
                                         </p>
                                     </div>
                                 </div>
@@ -125,14 +128,14 @@ const TicketsPage: React.FC = () => {
                             <div className="flex items-center justify-between md:justify-end gap-6 border-t md:border-0 pt-4 md:pt-0">
                                 <div className="flex items-center gap-2">
                                     <div className="flex -space-x-2">
-                                        <img src="https://i.pravatar.cc/150?u=support1" className="w-7 h-7 rounded-full border-2 border-surface" alt="" />
-                                        <div className="w-7 h-7 rounded-full bg-surface border border-white/10 flex items-center justify-center text-[10px] text-text-muted font-bold">+2</div>
+                                        <img src={`https://i.pravatar.cc/150?u=${ticket.reporter_id}`} className="w-7 h-7 rounded-full border-2 border-surface" alt="" />
                                     </div>
-                                    <span className="text-[10px] text-text-muted font-bold ml-1">4 Replies</span>
+                                    <span className="text-[10px] text-text-muted font-bold ml-1">{ticket.users?.name || 'User'}</span>
                                 </div>
                                 
                                 <div className={`status-badge w-fit ${
                                     ticket.status === 'Open' ? 'status-cyan shadow-glow' :
+                                    ticket.status === 'In Progress' ? 'status-amber' :
                                     ticket.status === 'Resolved' ? 'status-green' : 'status-gray'
                                 }`}>
                                     {ticket.status}

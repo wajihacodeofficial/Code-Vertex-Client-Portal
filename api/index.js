@@ -44,7 +44,7 @@ app.post('/api/auth/signup', async (req, res) => {
             .from('users')
             .select('id')
             .eq('email', email.toLowerCase())
-            .single();
+            .maybeSingle();
 
         if (existingUser) {
             return res.status(409).json({ error: 'An account with this email already exists.' });
@@ -174,7 +174,7 @@ app.post('/api/auth/resend-otp', async (req, res) => {
             .from('users')
             .select('email_verified')
             .eq('email', email.toLowerCase())
-            .single();
+            .maybeSingle();
 
         if (!user) {
             return res.status(404).json({ error: 'No account found with this email.' });
@@ -228,7 +228,7 @@ app.post('/api/auth/login', async (req, res) => {
             .from('users')
             .select('*')
             .eq('email', email.toLowerCase())
-            .single();
+            .maybeSingle();
 
         if (profileError || !userProfile) {
             return res.json({ success: false, error: 'Invalid email or password.' });
@@ -295,7 +295,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
             .from('users')
             .select('email')
             .eq('email', email.toLowerCase())
-            .single();
+            .maybeSingle();
 
         if (!user) {
             // Return success even if user not found to prevent email enumeration
@@ -404,7 +404,7 @@ app.patch('/api/users/:id/status', async (req, res) => {
             .update({ status })
             .eq('id', id)
             .select()
-            .single();
+            .maybeSingle();
         if (error) throw error;
         res.json(data);
     } catch (err) {
@@ -433,9 +433,80 @@ app.post('/api/projects', async (req, res) => {
             .from('projects')
             .insert({ name, description, type, client_id, deadline })
             .select()
-            .single();
+            .maybeSingle();
         if (error) throw error;
         res.status(201).json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// INVOICES ROUTES
+// ═══════════════════════════════════════════════════════════════
+
+app.get('/api/invoices', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('invoices')
+            .select('*, projects(name)');
+        if (error) throw error;
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// TICKETS ROUTES
+// ═══════════════════════════════════════════════════════════════
+
+app.get('/api/tickets', async (req, res) => {
+    try {
+        const { data, error } = await supabase
+            .from('tickets')
+            .select('*, projects(name), users(name)');
+        if (error) throw error;
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.post('/api/tickets', async (req, res) => {
+    const { project_id, reporter_id, subject, priority, description } = req.body;
+    try {
+        const { data, error } = await supabase
+            .from('tickets')
+            .insert({ project_id, reporter_id, subject, priority, description })
+            .select()
+            .maybeSingle();
+        if (error) throw error;
+        res.status(201).json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+// ═══════════════════════════════════════════════════════════════
+// ADMIN DASHBOARD ROUTES
+// ═══════════════════════════════════════════════════════════════
+
+app.get('/api/admin/stats', async (req, res) => {
+    try {
+        const { data: users } = await supabase.from('users').select('role, status');
+        const { data: projects } = await supabase.from('projects').select('status');
+        const { data: invoices } = await supabase.from('invoices').select('amount, status');
+
+        const stats = {
+            totalRevenue: invoices?.filter(i => i.status === 'Paid').reduce((sum, i) => sum + Number(i.amount), 0) || 0,
+            activeProjects: projects?.filter(p => p.status === 'In Progress').length || 0,
+            activeClients: users?.filter(u => u.role === 'client' && u.status === 'approved').length || 0,
+            pendingApprovals: users?.filter(u => u.status === 'pending').length || 0,
+            totalUsers: users?.length || 0
+        };
+
+        res.json(stats);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

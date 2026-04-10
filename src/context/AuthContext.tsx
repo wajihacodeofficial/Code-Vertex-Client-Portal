@@ -15,18 +15,25 @@ export interface User {
     status?: 'pending' | 'approved' | 'rejected';
 }
 
+export interface AdminStats {
+    totalRevenue: number;
+    activeProjects: number;
+    activeClients: number;
+    pendingApprovals: number;
+    totalUsers: number;
+}
+
 interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (email: string, password: string, role: UserRole) => Promise<UserRole>;
-    signup: (name: string, email: string, password: string, role?: UserRole, phone?: string) => Promise<void>;
-    logout: () => Promise<void>;
-    allUsers: User[];
-    approveUser: (id: string) => Promise<void>;
-    rejectUser: (id: string) => Promise<void>;
-    forgotPassword: (email: string) => Promise<void>;
     resetPassword: (email: string, token: string, newPassword: string) => Promise<void>;
+    projects: any[];
+    invoices: any[];
+    tickets: any[];
+    adminStats: AdminStats | null;
+    fetchAdminData: () => Promise<void>;
+    fetchProjects: () => Promise<void>;
 }
 
 // ─── Context ────────────────────────────────────────────────────────────────
@@ -37,15 +44,55 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [allUsers, setAllUsers] = useState<User[]>([]);
+    const [projects, setProjects] = useState<any[]>([]);
+    const [invoices, setInvoices] = useState<any[]>([]);
+    const [tickets, setTickets] = useState<any[]>([]);
+    const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
 
     // ── Fetch all users (for admin panel) ───────────────────────────────────
     const fetchAllUsers = async () => {
         try {
             const { data } = await api.get('/api/users');
             setAllUsers(data);
-        } catch {
-            // Non-critical — admin panel will just be empty
-        }
+        } catch { /* Suppress */ }
+    };
+
+    const fetchProjects = async () => {
+        try {
+            const { data } = await api.get('/api/projects');
+            setProjects(data);
+        } catch { /* Suppress */ }
+    };
+
+    const fetchInvoices = async () => {
+        try {
+            const { data } = await api.get('/api/invoices');
+            setInvoices(data);
+        } catch { /* Suppress */ }
+    };
+
+    const fetchTickets = async () => {
+        try {
+            const { data } = await api.get('/api/tickets');
+            setTickets(data);
+        } catch { /* Suppress */ }
+    };
+
+    const fetchAdminStats = async () => {
+        try {
+            const { data } = await api.get('/api/admin/stats');
+            setAdminStats(data);
+        } catch { /* Suppress */ }
+    };
+
+    const fetchAdminData = async () => {
+        await Promise.all([
+            fetchAllUsers(),
+            fetchProjects(),
+            fetchInvoices(),
+            fetchTickets(),
+            fetchAdminStats()
+        ]);
     };
 
     // ── Restore session on mount ──
@@ -77,9 +124,20 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             }
         }
 
-        // Load all users for admin panel
-        fetchAllUsers();
-        setIsLoading(false);
+        // Initial data load based on role
+        const initialize = async () => {
+            if (storedUser) {
+                const parsedUser = JSON.parse(storedUser);
+                if (parsedUser.role === 'admin') {
+                    await fetchAdminData();
+                } else {
+                    await fetchProjects();
+                }
+            }
+            setIsLoading(false);
+        };
+        
+        initialize();
     }, []);
 
     // ── Login ────────────────────────────────────────────────────────────────
@@ -192,6 +250,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             rejectUser,
             forgotPassword,
             resetPassword,
+            projects,
+            invoices,
+            tickets,
+            adminStats,
+            fetchAdminData,
+            fetchProjects
         }}>
             {children}
         </AuthContext.Provider>

@@ -9,16 +9,32 @@ interface CreateProjectModalProps {
 }
 
 const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose }) => {
-    const { allUsers } = useAuth();
+    const { allUsers, fetchProjects } = useAuth();
     const clients = allUsers.filter(u => u.role === 'client');
     const [step, setStep] = useState(1);
+    const [projectName, setProjectName] = useState('');
+    const [selectedClient, setSelectedClient] = useState('');
+    const [deadline, setDeadline] = useState('');
+    const [description, setDescription] = useState('');
 
     if (!isOpen) return null;
 
-    const handleCreate = (e: React.FormEvent) => {
+    const handleCreate = async (e: React.FormEvent) => {
         e.preventDefault();
-        toast.success('Project explicitly created and scoped successfully!');
-        onClose();
+        try {
+            await api.post('/api/projects', {
+                name: projectName,
+                client_id: selectedClient,
+                deadline: deadline,
+                description: description,
+                type: 'Software Development' // Default for now
+            });
+            await fetchProjects();
+            toast.success('Project explicitly created and scoped successfully!');
+            onClose();
+        } catch (err: any) {
+            toast.error(err.response?.data?.error || 'Failed to create project');
+        }
     };
 
     return (
@@ -49,11 +65,23 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                         <div className="space-y-5 animate-in">
                             <div>
                                 <label className="flex text-xs font-bold text-text-muted uppercase tracking-widest mb-2 flex items-center gap-2"><FileText size={14}/> Project Name</label>
-                                <input type="text" className="input-field w-full" placeholder="e.g. Master E-Commerce Platform" required />
+                                <input 
+                                    type="text" 
+                                    className="input-field w-full" 
+                                    placeholder="e.g. Master E-Commerce Platform" 
+                                    value={projectName}
+                                    onChange={(e) => setProjectName(e.target.value)}
+                                    required 
+                                />
                             </div>
                             <div>
                                 <label className="flex text-xs font-bold text-text-muted uppercase tracking-widest mb-2 flex items-center gap-2"><User size={14}/> Assign Client Account</label>
-                                <select className="input-field w-full cursor-pointer text-text-primary" defaultValue="" required>
+                                <select 
+                                    className="input-field w-full cursor-pointer text-text-primary" 
+                                    value={selectedClient}
+                                    onChange={(e) => setSelectedClient(e.target.value)}
+                                    required
+                                >
                                     <option value="" disabled>Select a client to assign ownership</option>
                                     {clients.map(c => <option key={c.id} value={c.id}>{c.name} ({c.email})</option>)}
                                     {clients.length === 0 && <option disabled>No active clients found. Add clients in Admin dashboard.</option>}
@@ -66,12 +94,24 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                                 </div>
                                 <div>
                                     <label className="flex text-xs font-bold text-text-muted uppercase tracking-widest mb-2 flex items-center gap-2"><Calendar size={14}/> Estimated Deadline</label>
-                                    <input type="date" className="input-field w-full text-text-primary" required />
+                                    <input 
+                                        type="date" 
+                                        className="input-field w-full text-text-primary" 
+                                        value={deadline}
+                                        onChange={(e) => setDeadline(e.target.value)}
+                                        required 
+                                    />
                                 </div>
                             </div>
                             <div>
                                 <label className="flex text-xs font-bold text-text-muted uppercase tracking-widest mb-2">Internal Description / Brief</label>
-                                <textarea className="input-field w-full h-24 resize-none" placeholder="Details kept hidden from client unless published." required></textarea>
+                                <textarea 
+                                    className="input-field w-full h-24 resize-none" 
+                                    placeholder="Details kept hidden from client unless published." 
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    required
+                                ></textarea>
                             </div>
                         </div>
                     )}
