@@ -177,7 +177,8 @@ async function sendPasswordResetLink(email) {
         throw new Error('Failed to store password reset token: ' + insertError.message);
     }
     
-    const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const rawUrl = process.env.FRONTEND_URL || 'http://localhost:5173';
+    const frontendUrl = rawUrl.replace(/\/$/, '');
     const resetLink = `${frontendUrl}/reset-password?token=${otpCode}&email=${encodeURIComponent(email.toLowerCase())}`;
     
     const senderName = process.env.MAIL_FROM || process.env.ZOHO_FROM_NAME || 'Code Vertex';
