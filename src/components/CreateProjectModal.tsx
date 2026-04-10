@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { X, Calendar, User, FileText, CheckCircle2, DollarSign } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
+import { useAuth, type User as UserType } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 import api from '../lib/api';
 
@@ -11,7 +11,7 @@ interface CreateProjectModalProps {
 
 const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose }) => {
     const { allUsers, fetchProjects } = useAuth();
-    const clients = allUsers.filter(u => u.role === 'client');
+    const clients = allUsers.filter((u: UserType) => u.role === 'client');
     const [step, setStep] = useState(1);
     const [projectName, setProjectName] = useState('');
     const [selectedClient, setSelectedClient] = useState('');
@@ -85,7 +85,7 @@ const CreateProjectModal: React.FC<CreateProjectModalProps> = ({ isOpen, onClose
                                     required
                                 >
                                     <option value="" disabled>Select a client to assign ownership</option>
-                                    {clients.map(c => <option key={c.id} value={c.id}>{c.name} ({c.email})</option>)}
+                                    {clients.map((c: UserType) => <option key={c.id} value={c.id}>{c.name} ({c.email})</option>)}
                                     {clients.length === 0 && <option disabled>No active clients found. Add clients in Admin dashboard.</option>}
                                 </select>
                             </div>

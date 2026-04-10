@@ -29,6 +29,13 @@ interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
+    login: (email: string, password: string, role: UserRole) => Promise<UserRole>;
+    signup: (name: string, email: string, password: string, role?: UserRole, phone?: string) => Promise<void>;
+    logout: () => Promise<void>;
+    allUsers: User[];
+    approveUser: (id: string) => Promise<void>;
+    rejectUser: (id: string) => Promise<void>;
+    forgotPassword: (email: string) => Promise<void>;
     resetPassword: (email: string, token: string, newPassword: string) => Promise<void>;
     projects: any[];
     invoices: any[];
