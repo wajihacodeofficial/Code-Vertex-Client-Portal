@@ -14,7 +14,6 @@ import SignUpPage from './pages/SignUpPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerificationPage from './pages/VerificationPage';
-import ResetPasswordPage from './pages/ResetPasswordPage';
 import AwaitingApproval from './pages/AwaitingApproval';
 import DashboardHome from './pages/DashboardHome';
 import AdminDashboard from './pages/AdminDashboard';
