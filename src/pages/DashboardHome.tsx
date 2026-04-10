@@ -11,12 +11,7 @@ import {
   Calendar,
   CheckCircle2
 } from 'lucide-react';
-import { 
-  projects, 
-  invoices, 
-  tickets, 
-  activityFeed 
-} from '../data/mockData';
+import { useAuth } from '../context/AuthContext';
 
 
 const StatCard = ({ title, value, icon: Icon, trend, color, subtitle, to }: { title: string, value: string, icon: any, trend?: string, color: string, subtitle?: string, to: string }) => {
@@ -43,29 +38,31 @@ const StatCard = ({ title, value, icon: Icon, trend, color, subtitle, to }: { ti
 };
 
 const DashboardHome: React.FC = () => {
+    const { user, projects, invoices, tickets } = useAuth();
+    
     // Stat calculations
-    const activeProjectsCount = projects.filter(p => p.status !== 'Completed').length;
-    const pendingDeliverables = 4; // Mock
-    const unpaidInvoices = invoices.filter(i => i.status === 'Unpaid' || i.status === 'Overdue');
-    const totalUnpaidAmount = unpaidInvoices.reduce((acc, i) => acc + i.amount, 0);
-    const openTicketsCount = tickets.filter(t => t.status === 'Open').length;
+    const activeProjectsCount = projects?.filter(p => p.status !== 'Completed').length || 0;
+    const pendingDeliverables = projects?.length || 0; // Fallback for now
+    const unpaidInvoices = invoices?.filter(i => i.status === 'Unpaid' || i.status === 'Overdue') || [];
+    const totalUnpaidAmount = unpaidInvoices.reduce((acc, i) => acc + (i.amount || 0), 0);
+    const openTicketsCount = tickets?.filter(t => t.status === 'Open').length || 0;
 
     return (
         <div className="space-y-8 pb-20">
             {/* Header / Greeting */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    <h1 className="text-4xl m-0 heading-gradient pb-1">Good morning, Wajiha 👋</h1>
-                    <p className="text-text-muted text-sm mt-1">Saturday, April 4, 2026</p>
+                    <h1 className="text-4xl m-0 heading-gradient pb-1 text-text-primary uppercase tracking-tighter">Welcome back, {user?.name || 'Client'} 👋</h1>
+                    <p className="text-text-muted text-sm mt-1 uppercase tracking-widest font-bold">Portal Live Status • {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}</p>
                 </div>
                 <div className="flex items-center gap-3">
-                    <button className="btn-secondary flex items-center gap-2 group text-sm">
+                    <Link to="/invoices" className="btn-secondary flex items-center gap-2 group text-sm">
                         View Invoices
-                    </button>
-                    <button className="btn-primary flex items-center gap-2 group text-sm">
+                    </Link>
+                    <Link to="/support" className="btn-primary flex items-center gap-2 group text-sm">
                         <span>+ New Request</span>
                         <ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-                    </button>
+                    </Link>
                 </div>
             </div>
 
@@ -75,18 +72,18 @@ const DashboardHome: React.FC = () => {
                     title="Active Projects" 
                     value={activeProjectsCount.toString()} 
                     icon={Briefcase} 
-                    trend="+12%" 
+                    trend="+Live" 
                     color="bg-primary"
-                    subtitle="3 ongoing, 1 on hold"
+                    subtitle={`${activeProjectsCount} ongoing operations`}
                     to="/projects"
                 />
                 <StatCard 
-                    title="Deliverables" 
+                    title="Project Depth" 
                     value={pendingDeliverables.toString()} 
                     icon={Clock} 
                     color="bg-blue-500"
-                    subtitle="Next: 'User Dashboard API' due in 2d"
-                    to="/documents"
+                    subtitle="Tracked development phases"
+                    to="/projects"
                 />
                 <StatCard 
                     title="Unpaid Balance" 
@@ -101,7 +98,7 @@ const DashboardHome: React.FC = () => {
                     value={openTicketsCount.toString()} 
                     icon={Ticket} 
                     color="bg-red-500"
-                    subtitle="1 high priority ticket needs attention"
+                    subtitle="Open support requests"
                     to="/support"
                 />
             </div>
@@ -110,8 +107,8 @@ const DashboardHome: React.FC = () => {
                 {/* Active Projects Table/List */}
                 <div className="lg:col-span-2 space-y-6">
                     <div className="flex justify-between items-center px-2">
-                        <h2 className="text-xl text-text-primary leading-none">Active Projects</h2>
-                        <button className="text-primary text-xs font-bold uppercase tracking-widest hover:underline">View All Projects</button>
+                        <h2 className="text-xl text-text-primary leading-none uppercase tracking-widest font-black">Active Projects</h2>
+                        <Link to="/projects" className="text-primary text-xs font-bold uppercase tracking-widest hover:underline text-primary">View All Projects</Link>
                     </div>
 
                     <div className="glass-card rounded-card border shadow-glow overflow-hidden">
@@ -127,28 +124,32 @@ const DashboardHome: React.FC = () => {
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-white/5">
-                                    {projects.slice(0, 3).map(project => (
+                                    {projects?.length === 0 ? (
+                                        <tr>
+                                            <td colSpan={5} className="px-6 py-10 text-center text-text-muted text-sm uppercase tracking-widest font-bold">No active projects found in your dashboard.</td>
+                                        </tr>
+                                    ) : projects?.slice(0, 3).map(project => (
                                         <tr key={project.id} className="hover:bg-white/2 transition-colors group cursor-pointer">
                                             <td className="px-6 py-5">
                                                 <div className="flex items-center gap-3">
                                                     <div className="w-10 h-10 rounded-lg bg-surface border border-white/10 flex items-center justify-center text-primary font-bold group-hover:scale-110 transition-transform">
-                                                        {project.name.charAt(0)}
+                                                        {project.name?.charAt(0) || 'P'}
                                                     </div>
                                                     <div>
                                                         <p className="text-sm font-bold text-text-primary leading-none whitespace-nowrap">{project.name}</p>
-                                                        <span className="text-[10px] text-text-muted mt-1 uppercase font-bold tracking-tighter whitespace-nowrap">{project.type}</span>
+                                                        <span className="text-[10px] text-text-muted mt-1 uppercase font-bold tracking-tighter whitespace-nowrap">{project.type || 'Custom Work'}</span>
                                                     </div>
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5 min-w-[150px]">
                                                 <div className="flex flex-col gap-1.5">
                                                     <div className="flex justify-between items-center text-[10px] font-bold text-text-muted">
-                                                        <span>{project.progress}% completed</span>
+                                                        <span>{project.progress || 0}% completed</span>
                                                     </div>
                                                     <div className="progress-bar-bg w-full">
                                                         <div 
                                                             className="progress-bar-fill shadow-glow" 
-                                                            style={{ width: `${project.progress}%` }}
+                                                            style={{ width: `${project.progress || 0}%` }}
                                                         ></div>
                                                     </div>
                                                 </div>
@@ -166,11 +167,11 @@ const DashboardHome: React.FC = () => {
                                                         project.status === 'Blocked' ? 'bg-danger' :
                                                         project.status === 'Review' ? 'bg-warning' : 'bg-text-muted'
                                                     } ${project.status === 'In Progress' ? 'animate-pulse shadow-glow' : ''}`}></span>
-                                                    {project.status}
+                                                    {project.status || 'Planned'}
                                                 </div>
                                             </td>
                                             <td className="px-6 py-5 text-sm font-medium text-text-muted">
-                                                {project.deadline}
+                                                {project.deadline ? new Date(project.deadline).toLocaleDateString() : 'N/A'}
                                             </td>
                                             <td className="px-6 py-5 text-right">
                                                 <button className="p-1 hover:text-text-primary text-text-muted transition-colors"><MoreVertical size={18} /></button>
@@ -184,7 +185,7 @@ const DashboardHome: React.FC = () => {
 
                     {/* Upcoming Milestones */}
                     <div className="space-y-4 pt-4">
-                        <h2 className="text-xl text-text-primary px-2">Upcoming Milestones</h2>
+                        <h2 className="text-xl text-text-primary px-2 uppercase tracking-widest font-bold">Upcoming Milestones</h2>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div className="glass-card p-5 rounded-card border shadow-glow border-primary/20 bg-primary/5 group transition-all hover:bg-primary/10">
                                 <div className="flex justify-between items-start">
@@ -193,11 +194,11 @@ const DashboardHome: React.FC = () => {
                                             <Calendar size={20} />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-bold text-text-primary">Project Kickoff & Discovery</p>
-                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest mt-0.5">E-Commerce Platform</p>
+                                            <p className="text-sm font-bold text-text-primary">Project Initialization</p>
+                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest mt-0.5">Live Dashboard Sync</p>
                                         </div>
                                     </div>
-                                    <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">In 2 Days</span>
+                                    <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">Active</span>
                                 </div>
                             </div>
                             <div className="glass-card p-5 rounded-card border shadow-glow group hover:bg-white/5 transition-all">
@@ -207,11 +208,11 @@ const DashboardHome: React.FC = () => {
                                             <CheckCircle2 size={20} />
                                         </div>
                                         <div>
-                                            <p className="text-sm font-bold text-text-primary opacity-70">Design Phase Approval</p>
-                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest mt-0.5 line-through">Mobile App MVP</p>
+                                            <p className="text-sm font-bold text-text-primary opacity-70">Core Development Phase</p>
+                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest mt-0.5">Automated Oversight</p>
                                         </div>
                                     </div>
-                                    <span className="text-[10px] font-black text-success bg-success/10 px-2 py-0.5 rounded uppercase">Completed</span>
+                                    <span className="text-[10px] font-black text-success bg-success/10 px-2 py-0.5 rounded uppercase">Ready</span>
                                 </div>
                             </div>
                         </div>
@@ -220,37 +221,32 @@ const DashboardHome: React.FC = () => {
 
                 {/* Activity Feed Sidebar */}
                 <div className="space-y-6">
-                    <h2 className="text-xl text-text-primary px-2 leading-none">Recent Activity</h2>
-                    <div className="glass-card rounded-card border shadow-glow relative h-[calc(100%-48px)]">
+                    <h2 className="text-xl text-text-primary px-2 leading-none uppercase tracking-widest font-bold">Recent Updates</h2>
+                    <div className="glass-card rounded-card border shadow-glow relative h-[calc(100%-48px)] bg-white/2">
                         <div className="absolute inset-0 bg-linear-to-t from-background via-transparent to-transparent opacity-60"></div>
                         <div className="p-6 space-y-8 relative z-10">
-                            {activityFeed.map((activity) => (
-                                <div key={activity.id} className="flex gap-4 group">
+                            {tickets?.slice(0, 3).map((ticket) => (
+                                <div key={ticket.id} className="flex gap-4 group">
                                     <div className={`w-4 h-4 rounded-full mt-1 border-4 border-surface ring-2 shadow-glow shrink-0 z-10 transition-transform group-hover:scale-125 ${
-                                        activity.type === 'file' ? 'bg-primary ring-primary/20' :
-                                        activity.type === 'invoice' ? 'bg-amber-500 ring-amber-500/20' :
-                                        activity.type === 'message' ? 'bg-violet-500 ring-violet-500/20' : 'bg-blue-500 ring-blue-500/20'
+                                        ticket.priority === 'High' ? 'bg-red-500 ring-red-500/20' :
+                                        ticket.priority === 'Medium' ? 'bg-amber-500 ring-amber-500/20' : 'bg-primary ring-primary/20'
                                     }`}></div>
                                     <div>
-                                        <p className="text-sm text-text-primary font-medium leading-relaxed group-hover:text-primary transition-colors">{activity.text}</p>
-                                        <span className="text-[10px] text-text-muted uppercase font-bold tracking-widest mt-1 block">{activity.time}</span>
+                                        <p className="text-sm text-text-primary font-medium leading-relaxed group-hover:text-primary transition-colors">{ticket.subject}</p>
+                                        <span className="text-[10px] text-text-muted uppercase font-bold tracking-widest mt-1 block">TICKET #{ticket.id.slice(0, 8)} • REAL-TIME SYNC</span>
                                     </div>
                                 </div>
                             ))}
                             
-                            <div className="flex gap-4 group">
-                                <div className="w-4 h-4 rounded-full mt-1 border-4 border-surface ring-2 shadow-glow bg-red-500 ring-red-500/20 shrink-0 z-10"></div>
-                                <div>
-                                    <p className="text-sm font-medium text-text-primary group-hover:text-red-400 transition-colors">Critical bug reported on mobile app login.</p>
-                                    <span className="text-[10px] text-text-muted font-bold tracking-widest mt-1 block uppercase">3 days ago</span>
-                                </div>
-                            </div>
+                            {tickets?.length === 0 && (
+                                <div className="text-center py-10 text-text-muted text-xs uppercase tracking-widest">No recent alerts or activity.</div>
+                            )}
                         </div>
                         
-                        <div className="p-6 border-t border-white/5 mt-auto">
-                            <button className="w-full text-center text-xs font-bold text-text-muted hover:text-text-primary transition-colors uppercase tracking-widest">
-                                Load more activity
-                            </button>
+                        <div className="p-6 border-t border-white/5 mt-auto bg-white/2">
+                            <Link to="/support" className="block w-full text-center text-xs font-bold text-text-muted hover:text-text-primary transition-colors uppercase tracking-widest">
+                                Go to Support Center
+                            </Link>
                         </div>
                     </div>
                 </div>

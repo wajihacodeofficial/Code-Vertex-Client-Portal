@@ -1,9 +1,10 @@
 import React from 'react';
 import { Users, Briefcase, Activity, DollarSign, ArrowUpRight, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { Link } from 'react-router-dom';
 
 const AdminDashboard: React.FC = () => {
-  const { allUsers, approveUser, rejectUser, adminStats } = useAuth();
+  const { allUsers, approveUser, rejectUser, adminStats, tickets } = useAuth();
   const pendingUsers = allUsers?.filter(u => u.status === 'pending') || [];
 
   return (
@@ -15,10 +16,13 @@ const AdminDashboard: React.FC = () => {
           </div>
           <div className="flex items-center gap-3">
               <button className="btn-secondary text-sm">Download Report</button>
-              <button className="btn-primary flex items-center gap-2 group text-sm">
+              <Link 
+                  to="/admin/clients"
+                  className="btn-primary flex items-center gap-2 group text-sm"
+              >
                   <span>New Client</span>
                   <ArrowUpRight size={16} className="group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
-              </button>
+              </Link>
           </div>
       </div>
 
@@ -115,23 +119,23 @@ const AdminDashboard: React.FC = () => {
             </div>
         </div>
 
-        {/* Placeholder: Recent Client Activity */}
         <div className="glass-card p-6 rounded-card border shadow-glow">
-            <h2 className="text-xl text-text-primary font-display font-bold mb-6">Recent Client Activity</h2>
+            <h2 className="text-xl text-text-primary font-display font-bold mb-6">Recent System Activity</h2>
             <div className="space-y-4">
-                {[
-                    { text: 'Wajiha viewed invoice INV-2026-001', time: '10 mins ago', type: 'invoice' },
-                    { text: 'TechCorp uploaded new SLA doc', time: '1 hour ago', type: 'doc' },
-                    { text: 'LogistiX created support ticket', time: '2 hours ago', type: 'ticket' }
-                ].map((act, i) => (
-                    <div key={i} className="flex gap-4 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors">
-                        <div className="w-2 h-2 mt-1.5 rounded-full bg-primary shadow-glow shrink-0"></div>
-                        <div>
-                            <p className="text-sm font-medium text-text-primary">{act.text}</p>
-                            <p className="text-xs text-text-muted mt-1 uppercase tracking-widest font-bold">{act.time}</p>
+                {tickets?.slice(0, 3).map((ticket, i) => (
+                    <div key={ticket.id} className="flex gap-4 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group">
+                        <div className={`w-2 h-2 mt-1.5 rounded-full shadow-glow shrink-0 ${ticket.priority === 'High' ? 'bg-red-500' : 'bg-primary'}`}></div>
+                        <div className="flex-1">
+                            <p className="text-sm font-medium text-text-primary group-hover:text-primary transition-colors line-clamp-1">{ticket.subject}</p>
+                            <p className="text-[10px] text-text-muted mt-1 uppercase tracking-widest font-bold">New Ticket • {ticket.status}</p>
                         </div>
                     </div>
                 ))}
+                {tickets?.length === 0 && (
+                    <div className="text-center py-8 text-text-muted text-xs uppercase tracking-widest border border-dashed border-white/10 rounded-xl">
+                        No recent activity recorded.
+                    </div>
+                )}
             </div>
         </div>
       </div>

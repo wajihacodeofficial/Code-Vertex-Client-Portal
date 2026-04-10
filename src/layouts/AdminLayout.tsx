@@ -74,7 +74,7 @@ const SidebarItem = ({
   );
 };
 
-const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -85,7 +85,11 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     { id: 4, title: 'Support Ticket', desc: 'Critical bug reported on mobile.', time: '1d ago', unread: false }
   ]);
   const location = useLocation();
-  const { logout, user } = useAuth();
+  const { logout, user, allUsers, tickets } = useAuth();
+  
+  const pendingClientsCount = allUsers?.filter((u: any) => u.role === 'client' && u.status === 'pending').length || 0;
+  const openTicketsCount = tickets?.filter((t: any) => t.status === 'Open' || t.status === 'In Progress').length || 0;
+
   const mainContentRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
 
@@ -99,7 +103,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const unreadCount = notifications.filter((n: any) => n.unread).length;
 
   useEffect(() => {
     if (mainContentRef.current) {
@@ -150,7 +154,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             icon={Users}
             label="Clients"
             collapsed={collapsed}
-            badge={3}
+            badge={pendingClientsCount > 0 ? pendingClientsCount : undefined}
           />
           <SidebarItem
             to="/admin/team"
@@ -193,7 +197,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             icon={MessageSquare}
             label="Communications"
             collapsed={collapsed}
-            badge={5}
+            // badge={5}
           />
           <SidebarItem
             to="/admin/invoices"
@@ -218,7 +222,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             icon={Ticket}
             label="Support Tickets"
             collapsed={collapsed}
-            badge={2}
+            badge={openTicketsCount > 0 ? openTicketsCount : undefined}
           />
           <SidebarItem
             to="/admin/meetings"
@@ -327,9 +331,9 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     <span className="text-[10px] text-black bg-[#00CFFF] px-2 py-0.5 rounded-full font-black uppercase tracking-widest">{unreadCount} New</span>
                   </div>
                   <div className="max-h-80 overflow-y-auto">
-                    {notifications.map((notif) => (
+                    {notifications.map((notif: any) => (
                       <div key={notif.id} 
-                           onClick={() => setNotifications(notifications.map(n => n.id === notif.id ? { ...n, unread: false } : n))}
+                           onClick={() => setNotifications(notifications.map((n: any) => n.id === notif.id ? { ...n, unread: false } : n))}
                            className={`p-4 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${notif.unread ? 'bg-[#00CFFF]/5' : ''}`}>
                         <div className="flex justify-between items-start mb-1">
                           <p className={`text-xs font-bold ${notif.unread ? 'text-[#00CFFF]' : 'text-text-primary'}`}>{notif.title}</p>
@@ -340,7 +344,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                     ))}
                   </div>
                   <div className="p-3 border-t border-white/5 bg-surface text-center flex justify-between px-6">
-                    <button onClick={() => setNotifications(notifications.map(n => ({ ...n, unread: false })))} className="text-[10px] text-text-muted hover:text-[#00CFFF] uppercase tracking-widest font-bold transition-colors">Mark all as read</button>
+                    <button onClick={() => setNotifications(notifications.map((n: any) => ({ ...n, unread: false })))} className="text-[10px] text-text-muted hover:text-[#00CFFF] uppercase tracking-widest font-bold transition-colors">Mark all as read</button>
                     <button onClick={() => setShowNotifications(false)} className="text-[10px] text-text-muted hover:text-text-primary uppercase tracking-widest font-bold transition-colors">Close</button>
                   </div>
                 </div>
@@ -358,7 +362,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
               </div>
               <div className="w-10 h-10 rounded-xl border-2 border-[#00CFFF]/20 p-0.5 hover:border-[#00CFFF] transition-all cursor-pointer overflow-hidden">
                 <img
-                  src={`https://i.pravatar.cc/150?u=${user?.email}`}
+                  src={user?.avatar || `https://i.pravatar.cc/150?u=${user?.email}`}
                   alt="Avatar"
                   className="w-full h-full rounded-lg object-cover"
                 />
@@ -435,7 +439,7 @@ const AdminLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10 active:bg-white/10 transition-colors"
               >
-                <img src={`https://i.pravatar.cc/150?u=${user?.email}`} className="w-12 h-12 rounded-full border-2 border-[#00CFFF]/20 object-cover" alt="" />
+                <img src={user?.avatar || `https://i.pravatar.cc/150?u=${user?.email}`} className="w-12 h-12 rounded-full border-2 border-[#00CFFF]/20 object-cover" alt="" />
                 <div>
                   <p className="text-text-primary font-bold text-sm uppercase tracking-wider leading-none truncate">{user?.name || 'Architect'}</p>
                   <span className="text-[10px] text-[#00CFFF] mt-2 flex uppercase font-bold tracking-widest">Platform Architect</span>

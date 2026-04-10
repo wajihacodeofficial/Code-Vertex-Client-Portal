@@ -12,6 +12,8 @@ export interface User {
     email: string;
     role: UserRole;
     phone?: string;
+    company?: string;
+    avatar?: string;
     status?: 'pending' | 'approved' | 'rejected';
 }
 
@@ -34,6 +36,7 @@ interface AuthContextType {
     adminStats: AdminStats | null;
     fetchAdminData: () => Promise<void>;
     fetchProjects: () => Promise<void>;
+    updateProfile: (data: Partial<User>) => Promise<void>;
 }
 
 // ─── Context ────────────────────────────────────────────────────────────────
@@ -159,6 +162,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setUser(loggedInUser);
         toast.success(`Welcome back, ${loggedInUser.name}!`);
 
+        // Fetch data immediately after login
+        if (loggedInUser.role === 'admin') {
+            await fetchAdminData();
+        } else {
+            await fetchProjects();
+        }
+
         return loggedInUser.role;
     };
 
@@ -193,7 +203,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const approveUser = async (id: string): Promise<void> => {
         try {
             const { data: updated } = await api.patch(`/api/users/${id}/status`, { status: 'approved' });
-            setAllUsers(prev => prev.map(u => u.id === id ? { ...u, status: updated.status } : u));
+            setAllUsers((prev: User[]) => prev.map((u: User) => u.id === id ? { ...u, status: updated.status } : u));
             toast.success('User account approved successfully');
         } catch (err: unknown) {
             const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
@@ -205,7 +215,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const rejectUser = async (id: string): Promise<void> => {
         try {
             const { data: updated } = await api.patch(`/api/users/${id}/status`, { status: 'rejected' });
-            setAllUsers(prev => prev.map(u => u.id === id ? { ...u, status: updated.status } : u));
+            setAllUsers((prev: User[]) => prev.map((u: User) => u.id === id ? { ...u, status: updated.status } : u));
             toast.success('User account rejected');
         } catch (err: unknown) {
             const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
@@ -237,6 +247,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    // ── Update Profile ───────────────────────────────────────────────────────
+    const updateProfile = async (updates: Partial<User>): Promise<void> => {
+        if (!user) return;
+        try {
+            const { data } = await api.patch(`/api/users/${user.id}`, updates);
+            const updatedUser = { ...user, ...data };
+            setUser(updatedUser);
+            localStorage.setItem('cv_auth_user', JSON.stringify(updatedUser));
+            toast.success('Profile updated successfully');
+        } catch (err: any) {
+            const message = err.response?.data?.error || err.message;
+            toast.error(message || 'Failed to update profile');
+            throw err;
+        }
+    };
+
     return (
         <AuthContext.Provider value={{
             user,
@@ -255,7 +281,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             tickets,
             adminStats,
             fetchAdminData,
-            fetchProjects
+            fetchProjects,
+            updateProfile
         }}>
             {children}
         </AuthContext.Provider>

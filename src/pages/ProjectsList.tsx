@@ -11,6 +11,7 @@ import { projects as mockProjects } from '../data/mockData';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import CreateProjectModal from '../components/CreateProjectModal';
+import dayjs from 'dayjs';
 
 const ProjectsList: React.FC = () => {
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card');
@@ -117,7 +118,7 @@ const ProjectsList: React.FC = () => {
                         <p className="text-text-muted text-sm mt-3 line-clamp-2 leading-relaxed">{project.description}</p>
                         
                         <div className="flex flex-wrap gap-2 mt-6">
-                            {(project.techStack || []).map(tag => (
+                            {(project.tech_stack || project.techStack || []).map((tag: string) => (
                                 <span key={tag} className="px-2.5 py-1 bg-white/5 border border-white/5 rounded-md text-[10px] font-bold text-text-muted uppercase tracking-tighter">
                                     {tag}
                                 </span>
@@ -130,7 +131,7 @@ const ProjectsList: React.FC = () => {
                             {(project.team || []).map((member: any, idx: number) => (
                                 <img 
                                     key={idx}
-                                    src={member.avatar} 
+                                    src={member.avatar || `https://i.pravatar.cc/150?u=${idx}`} 
                                     alt={member.name} 
                                     className="w-8 h-8 rounded-full border-2 border-surface" 
                                     title={`${member.name} - ${member.role}`}
@@ -139,19 +140,19 @@ const ProjectsList: React.FC = () => {
                         </div>
                         <div className="flex items-center gap-1.5 text-text-muted">
                             <Calendar size={14} />
-                            <span className="text-[10px] font-bold uppercase tracking-widest">{project.deadline}</span>
+                            <span className="text-[10px] font-bold uppercase tracking-widest">{dayjs(project.deadline).format('MMM DD, YYYY')}</span>
                         </div>
                     </div>
 
                     <div className="p-1 px-6 pb-6">
                         <div className="flex justify-between items-center text-[10px] text-text-muted font-bold uppercase mb-2">
                             <span>Progress</span>
-                            <span>{project.progress}%</span>
+                            <span>{project.progress || 0}%</span>
                         </div>
                         <div className="progress-bar-bg">
                             <div 
                                 className="progress-bar-fill shadow-glow" 
-                                style={{ width: `${project.progress}%` }}
+                                style={{ width: `${project.progress || 0}%` }}
                             ></div>
                         </div>
                     </div>

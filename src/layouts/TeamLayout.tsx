@@ -70,7 +70,7 @@ const SidebarItem = ({
   );
 };
 
-const TeamLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const TeamLayout = ({ children }: { children: React.ReactNode }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
@@ -95,7 +95,7 @@ const TeamLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const unreadCount = notifications.filter((n: any) => n.unread).length;
 
   useEffect(() => {
     if (mainContentRef.current) {
@@ -103,8 +103,8 @@ const TeamLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     }
   }, [location.pathname]);
 
-  const pathnames = location.pathname.split('/').filter((x) => x);
-  const breadcrumbs = pathnames.map((name, index) => {
+  const pathnames = location.pathname.split('/').filter((x: string) => x);
+  const breadcrumbs = pathnames.map((name: string, index: number) => {
     const routeTo = `/${pathnames.slice(0, index + 1).join('/')}`;
     const isLast = index === pathnames.length - 1;
     const displayName =
@@ -334,7 +334,7 @@ const TeamLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 <span className="text-[10px] text-emerald mt-1 inline-block uppercase tracking-widest font-bold">Execution Staff</span>
               </div>
               <div className="w-10 h-10 rounded-xl border-2 border-emerald/50 p-0.5 bg-surface flex items-center justify-center text-emerald font-display font-black group-hover:scale-105 group-hover:border-emerald transition-all overflow-hidden relative">
-                <img src={`https://i.pravatar.cc/150?u=${user?.email}`} alt="" className="w-full h-full object-cover rounded-lg" />
+                <img src={user?.avatar || `https://i.pravatar.cc/150?u=${user?.email}`} alt="" className="w-full h-full object-cover rounded-lg" />
               </div>
             </Link>
           </div>
@@ -391,7 +391,7 @@ const TeamLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10 active:bg-white/10 transition-colors"
               >
-                <img src={`https://i.pravatar.cc/150?u=${user?.email}`} className="w-12 h-12 rounded-full border-2 border-emerald/20 object-cover" alt="" />
+                <img src={user?.avatar || `https://i.pravatar.cc/150?u=${user?.email}`} className="w-12 h-12 rounded-full border-2 border-emerald/20 object-cover" alt="" />
                 <div>
                   <p className="text-text-primary font-bold text-sm uppercase tracking-wider leading-none truncate">{user?.name || 'Dev'}</p>
                   <span className="text-[10px] text-emerald mt-2 flex uppercase font-bold tracking-widest">Execution Staff</span>

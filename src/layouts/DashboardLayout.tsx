@@ -69,9 +69,7 @@ const SidebarItem = ({
   );
 };
 
-const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+const DashboardLayout = ({ children }: { children: React.ReactNode }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -91,7 +89,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const unreadCount = notifications.filter(n => !n.read).length;
+  const unreadCount = notifications.filter((n: any) => !n.read).length;
 
   useEffect(() => {
     if (mainContentRef.current) {
@@ -346,7 +344,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
               </div>
               <div className="w-10 h-10 rounded-full border-2 border-primary/20 p-0.5 hover:border-primary transition-all overflow-hidden relative">
                 <img
-                  src={`https://i.pravatar.cc/150?u=${user?.email}`}
+                  src={user?.avatar || `https://i.pravatar.cc/150?u=${user?.email}`}
                   alt="Avatar"
                   className="w-full h-full rounded-full object-cover"
                 />
@@ -404,7 +402,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
                 onClick={() => setMobileOpen(false)}
                 className="flex items-center gap-4 p-4 bg-white/5 rounded-2xl border border-white/10 active:bg-white/10 transition-colors"
               >
-                <img src={`https://i.pravatar.cc/150?u=${user?.email}`} className="w-12 h-12 rounded-full border-2 border-primary/20 object-cover" alt="Profile" />
+                <img src={user?.avatar || `https://i.pravatar.cc/150?u=${user?.email}`} className="w-12 h-12 rounded-full border-2 border-primary/20 object-cover" alt="Profile" />
                 <div>
                   <p className="text-text-primary font-bold text-sm uppercase tracking-wider leading-none truncate">{user?.name || 'Partner'}</p>
                   <span className="text-[10px] text-primary mt-2 flex uppercase font-bold tracking-widest">Client Partner</span>

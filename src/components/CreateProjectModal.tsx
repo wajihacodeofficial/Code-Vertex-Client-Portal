@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Calendar, User, FileText, CheckCircle2, DollarSign } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
+import api from '../lib/api';
 
 interface CreateProjectModalProps {
     isOpen: boolean;

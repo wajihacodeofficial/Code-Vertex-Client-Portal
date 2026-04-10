@@ -1,10 +1,20 @@
 import React, { useState } from 'react';
 import { User, Lock, Bell, Download, Shield } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { toast } from 'react-hot-toast';
 
 const SettingsPage: React.FC = () => {
     const { user } = useAuth();
     const [activeTab, setActiveTab] = useState('Profile');
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleSave = () => {
+        setIsSaving(true);
+        setTimeout(() => {
+            setIsSaving(false);
+            toast.success('Settings updated successfully');
+        }, 1000);
+    };
 
     const getTabClass = (tabName: string) => {
         const isActive = activeTab === tabName;
@@ -81,7 +91,13 @@ const SettingsPage: React.FC = () => {
                                 <label className="block text-xs font-bold text-text-muted uppercase tracking-widest mb-2">Company Name</label>
                                 <input type="text" className="input-field w-full" placeholder="Your Enterprise LLC" />
                             </div>
-                            <button className={`mt-6 ${getBtnClass()}`}>Save Changes</button>
+                            <button 
+                                onClick={handleSave} 
+                                disabled={isSaving}
+                                className={`mt-6 ${getBtnClass()} disabled:opacity-50`}
+                            >
+                                {isSaving ? 'Saving...' : 'Save Changes'}
+                            </button>
                         </div>
                     )}
 
@@ -113,7 +129,13 @@ const SettingsPage: React.FC = () => {
                                     'bg-primary/10 text-primary border-primary/20 hover:bg-primary/20'
                                 }`}>Enable 2FA</button>
                             </div>
-                            <button className={`mt-6 ${getBtnClass()}`}>Update Password</button>
+                            <button 
+                                onClick={handleSave} 
+                                disabled={isSaving}
+                                className={`mt-6 ${getBtnClass()} disabled:opacity-50`}
+                            >
+                                {isSaving ? 'Updating...' : 'Update Password'}
+                            </button>
                         </div>
                     )}
                     

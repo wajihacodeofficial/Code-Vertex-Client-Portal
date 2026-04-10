@@ -17,7 +17,6 @@ import VerificationPage from './pages/VerificationPage';
 import AwaitingApproval from './pages/AwaitingApproval';
 import DashboardHome from './pages/DashboardHome';
 import AdminDashboard from './pages/AdminDashboard';
-import AdminTeamPage from './pages/AdminTeamPage';
 import TeamDashboard from './pages/TeamDashboard';
 import ProjectsList from './pages/ProjectsList';
 import ProjectDetail from './pages/ProjectDetail';
@@ -132,7 +131,6 @@ const AppRoutes = () => {
                         <Route path="tickets" element={<TicketsPage />} />
                         <Route path="meetings" element={<MeetingsPage />} />
                         <Route path="policies" element={<PoliciesPage />} />
-                        <Route path="team" element={<AdminTeamPage />} />
                         <Route path="settings" element={<SettingsPage />} />
                         <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
                     </Routes>

@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
-  User, 
+  User as UserIcon, 
   Mail, 
   Phone, 
   Building, 
@@ -14,18 +14,55 @@ import {
   History
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { useAuth } from '../context/AuthContext';
 
-const ProfilePage: React.FC = () => {
+const ProfilePage = () => {
+    const { user, updateProfile } = useAuth();
     const [activeTab, setActiveTab] = useState('Profile');
+    const [isSaving, setIsSaving] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
-    const handleSave = () => {
-        toast.success('Profile updated successfully!');
+    // Form states
+    const [name, setName] = useState(user?.name || '');
+    const [phone, setPhone] = useState(user?.phone || '');
+    const [company, setCompany] = useState(user?.company || '');
+
+    const handleSave = async () => {
+        setIsSaving(true);
+        try {
+            await updateProfile({ name, phone, company });
+        } catch { /* Toast handled in AuthContext */ }
+        setIsSaving(false);
+    };
+
+    const handleAvatarClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        // 200KB limit
+        if (file.size > 200 * 1024) {
+            toast.error('Image size must be less than 200KB');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+            const base64String = reader.result as string;
+            try {
+                await updateProfile({ avatar: base64String });
+            } catch { /* Toast handled in AuthContext */ }
+        };
+        reader.readAsDataURL(file);
     };
 
     return (
         <div className="space-y-8 pb-20 max-w-5xl mx-auto">
             <div>
-                <h1 className="text-4xl text-text-primary m-0">Account Settings</h1>
+                <h1 className="text-4xl text-text-primary m-0 heading-gradient">Account Settings</h1>
                 <p className="text-text-muted text-sm mt-1">Manage your personal information, security, and notification preferences.</p>
             </div>
 
@@ -33,11 +70,11 @@ const ProfilePage: React.FC = () => {
                 {/* Tabs Sidebar */}
                 <aside className="lg:w-64 space-y-1">
                     {[
-                        { name: 'Profile', icon: User },
+                        { name: 'Profile', icon: UserIcon },
                         { name: 'Security', icon: Shield },
                         { name: 'Notifications', icon: Bell },
                         { name: 'Preferences', icon: Globe },
-                    ].map(tab => (
+                    ].map((tab: any) => (
                         <button 
                             key={tab.name}
                             onClick={() => setActiveTab(tab.name)}
@@ -54,15 +91,26 @@ const ProfilePage: React.FC = () => {
                 </aside>
 
                 {/* Tab Content */}
-                <div className="flex-1 space-y-8 animate-in">
+                <div className="flex-1 space-y-8 animate-in text-fade-in">
                     {activeTab === 'Profile' && (
                         <div className="glass-card p-8 rounded-card border border-white/5 space-y-8">
                             <div className="flex flex-col md:flex-row gap-8 items-start md:items-center">
-                                <div className="relative group cursor-pointer shrink-0">
-                                    <div className="w-24 h-24 rounded-full border-2 border-primary/30 p-1 group-hover:border-primary transition-all">
-                                        <img src="https://i.pravatar.cc/150?u=wajiha" className="w-full h-full rounded-full object-cover" alt="" />
+                                <div className="relative group cursor-pointer shrink-0" onClick={handleAvatarClick}>
+                                    <input 
+                                        type="file" 
+                                        ref={fileInputRef} 
+                                        className="hidden" 
+                                        accept="image/*" 
+                                        onChange={handleFileChange}
+                                    />
+                                    <div className="w-24 h-24 rounded-full border-2 border-primary/30 p-1 group-hover:border-primary transition-all overflow-hidden bg-surface">
+                                        <img 
+                                            src={user?.avatar || "https://i.pravatar.cc/150?u=fallback"} 
+                                            className="w-full h-full rounded-full object-cover shadow-inner" 
+                                            alt="" 
+                                        />
                                     </div>
-                                    <div className="absolute inset-0 flex items-center justify-center bg-black/40 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <div className="absolute inset-0 flex items-center justify-center bg-black/60 rounded-full opacity-0 group-hover:opacity-100 transition-opacity">
                                         <Camera size={24} className="text-text-primary" />
                                     </div>
                                     <div className="absolute -bottom-1 -right-1 w-6 h-6 rounded-full bg-primary flex items-center justify-center text-text-primary border-4 border-surface shadow-glow">
@@ -70,11 +118,13 @@ const ProfilePage: React.FC = () => {
                                     </div>
                                 </div>
                                 <div className="space-y-1">
-                                    <h3 className="text-2xl text-text-primary font-bold leading-none">Wajiha Zehra</h3>
-                                    <p className="text-text-muted text-sm italic">Verified Client Account</p>
+                                    <h3 className="text-2xl text-text-primary font-bold leading-none">{user?.name}</h3>
+                                    <p className="text-text-muted text-sm italic">{user?.role === 'admin' ? 'System Administrator' : user?.role === 'team' ? 'Execution Staff' : 'Verified Client Account'}</p>
                                     <div className="flex items-center gap-2 mt-2">
-                                        <span className="px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded text-[9px] font-black uppercase tracking-widest leading-none">Owner</span>
-                                        <span className="px-2 py-0.5 bg-white/5 text-text-muted border border-white/10 rounded text-[9px] font-black uppercase tracking-widest leading-none">Since 2024</span>
+                                        <span className="px-2 py-0.5 bg-primary/10 text-primary border border-primary/20 rounded text-[9px] font-black uppercase tracking-widest leading-none">
+                                            {user?.role}
+                                        </span>
+                                        <span className="px-2 py-0.5 bg-white/5 text-text-muted border border-white/10 rounded text-[9px] font-black uppercase tracking-widest leading-none">active</span>
                                     </div>
                                 </div>
                             </div>
@@ -83,36 +133,51 @@ const ProfilePage: React.FC = () => {
                                 <div className="space-y-2">
                                     <label className="text-[10px] text-text-muted font-black uppercase tracking-widest ml-1">Full Name</label>
                                     <div className="relative">
-                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"><User size={16} /></div>
-                                        <input type="text" defaultValue="Wajiha Zehra" className="input-field w-full pl-10" />
+                                        <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"><UserIcon size={16} /></div>
+                                        <input 
+                                            type="text" 
+                                            value={name} 
+                                            onChange={(e) => setName(e.target.value)}
+                                            className="input-field w-full pl-10" 
+                                        />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] text-text-muted font-black uppercase tracking-widest ml-1">Email Address</label>
-                                    <div className="relative">
+                                    <div className="relative pointer-events-none opacity-60">
                                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"><Mail size={16} /></div>
-                                        <input type="email" defaultValue="wajiha@codevertex.tech" className="input-field w-full pl-10" />
+                                        <input type="email" value={user?.email} className="input-field w-full pl-10 bg-transparent" readOnly />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] text-text-muted font-black uppercase tracking-widest ml-1">Phone Number</label>
                                     <div className="relative">
                                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"><Phone size={16} /></div>
-                                        <input type="text" defaultValue="+92 300 1234567" className="input-field w-full pl-10" />
+                                        <input 
+                                            type="text" 
+                                            value={phone} 
+                                            onChange={(e) => setPhone(e.target.value)}
+                                            className="input-field w-full pl-10" 
+                                        />
                                     </div>
                                 </div>
                                 <div className="space-y-2">
                                     <label className="text-[10px] text-text-muted font-black uppercase tracking-widest ml-1">Company Name</label>
                                     <div className="relative">
                                         <div className="absolute left-3 top-1/2 -translate-y-1/2 text-text-muted"><Building size={16} /></div>
-                                        <input type="text" defaultValue="Wajiha Solutions" className="input-field w-full pl-10" />
+                                        <input 
+                                            type="text" 
+                                            value={company} 
+                                            onChange={(e) => setCompany(e.target.value)}
+                                            className="input-field w-full pl-10" 
+                                        />
                                     </div>
                                 </div>
                             </div>
 
                             <div className="pt-6 border-t border-white/5 flex justify-end">
-                                <button onClick={handleSave} className="btn-primary">
-                                    Save Changes
+                                <button onClick={handleSave} disabled={isSaving} className="btn-primary disabled:opacity-50">
+                                    {isSaving ? 'Processing...' : 'Save Changes'}
                                 </button>
                             </div>
                         </div>

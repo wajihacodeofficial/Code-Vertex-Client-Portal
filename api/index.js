@@ -378,6 +378,26 @@ app.post('/api/auth/logout', async (req, res) => {
 // USERS ROUTES
 // ═══════════════════════════════════════════════════════════════
 
+// UPDATE USER PROFILE
+app.patch('/api/users/:id', async (req, res) => {
+    const { id } = req.params;
+    const { name, phone, company, avatar } = req.body;
+
+    try {
+        const { data, error } = await supabase
+            .from('users')
+            .update({ name, phone, company, avatar })
+            .eq('id', id)
+            .select()
+            .maybeSingle();
+
+        if (error) throw error;
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 app.get('/api/users', async (req, res) => {
     try {
         const { data, error } = await supabase
@@ -427,19 +447,42 @@ app.get('/api/projects', async (req, res) => {
 });
 
 app.post('/api/projects', async (req, res) => {
-    const { name, description, type, client_id, deadline } = req.body;
+    const { 
+        name, 
+        description, 
+        type, 
+        client_id, 
+        deadline, 
+        status = 'In Progress', 
+        progress = 0,
+        tech_stack = [],
+        team = []
+    } = req.body;
+
     try {
         const { data, error } = await supabase
             .from('projects')
-            .insert({ name, description, type, client_id, deadline })
+            .insert({ 
+                name, 
+                description, 
+                type, 
+                client_id, 
+                deadline, 
+                status, 
+                progress,
+                tech_stack,
+                team
+            })
             .select()
             .maybeSingle();
+            
         if (error) throw error;
         res.status(201).json(data);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
 });
+
 
 // ═══════════════════════════════════════════════════════════════
 // INVOICES ROUTES
@@ -456,6 +499,22 @@ app.get('/api/invoices', async (req, res) => {
         res.status(500).json({ error: err.message });
     }
 });
+
+app.post('/api/invoices', async (req, res) => {
+    const { amount, status, project_id, issue_date, due_date } = req.body;
+    try {
+        const { data, error } = await supabase
+            .from('invoices')
+            .insert({ amount, status, project_id, issue_date, due_date })
+            .select()
+            .maybeSingle();
+        if (error) throw error;
+        res.status(201).json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 
 // ═══════════════════════════════════════════════════════════════
 // TICKETS ROUTES
