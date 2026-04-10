@@ -14,6 +14,7 @@ import SignUpPage from './pages/SignUpPage';
 import ForgotPasswordPage from './pages/ForgotPasswordPage';
 import ResetPasswordPage from './pages/ResetPasswordPage';
 import VerificationPage from './pages/VerificationPage';
+import ResetPasswordPage from './pages/ResetPasswordPage';
 import AwaitingApproval from './pages/AwaitingApproval';
 import DashboardHome from './pages/DashboardHome';
 import AdminDashboard from './pages/AdminDashboard';
@@ -90,8 +91,9 @@ const AppRoutes = () => {
         <Route path="/login" element={<NoAuthRoute><LoginPage /></NoAuthRoute>} />
         <Route path="/signup" element={<NoAuthRoute><SignUpPage /></NoAuthRoute>} />
         <Route path="/forgot-password" element={<NoAuthRoute><ForgotPasswordPage /></NoAuthRoute>} />
-        <Route path="/reset-password" element={<NoAuthRoute><ResetPasswordPage /></NoAuthRoute>} />
+        <Route path="/reset-password" element={<ResetPasswordPage />} />
         <Route path="/verify-email" element={<VerificationPage />} />
+        <Route path="/reset-password" element={<NoAuthRoute><ResetPasswordPage /></NoAuthRoute>} />
         <Route path="/awaiting-approval" element={<AwaitingApproval />} />
         
         {/* Team Routes Wrapper */}
