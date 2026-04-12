@@ -17,7 +17,7 @@ import { useAuth } from '../context/AuthContext';
 import type { UserRole } from '../context/AuthContext';
 
 const AdminUsersPage: React.FC = () => {
-    const { allUsers, approveUser, rejectUser } = useAuth();
+    const { allUsers, approveUser, rejectUser, deleteUser } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
     const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
@@ -200,7 +200,17 @@ const AdminUsersPage: React.FC = () => {
                                     <td className="px-6 py-6 text-right">
                                         <div className="flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-2 group-hover:translate-x-0">
                                             <button className="p-2 text-text-muted hover:text-text-primary transition-colors" title="Edit Metadata"><UserCog size={18} /></button>
-                                            <button className="p-2 text-text-muted hover:text-red-500 transition-colors" title="Revoke Access"><Trash2 size={18} /></button>
+                                            <button 
+                                                onClick={() => {
+                                                    if (window.confirm('Are you sure you want to delete this user?')) {
+                                                        deleteUser(user.id);
+                                                    }
+                                                }}
+                                                className="p-2 text-text-muted hover:text-red-500 transition-colors" 
+                                                title="Revoke Access"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
                                             <button className="p-2 text-text-muted hover:text-text-primary transition-colors"><MoreVertical size={18} /></button>
                                         </div>
                                     </td>

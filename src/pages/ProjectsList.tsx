@@ -5,7 +5,8 @@ import {
   Grid, 
   List as ListIcon, 
   Calendar, 
-  ExternalLink
+  ExternalLink,
+  Trash2
 } from 'lucide-react';
 import { projects as mockProjects } from '../data/mockData';
 import { Link } from 'react-router-dom';
@@ -18,7 +19,7 @@ const ProjectsList: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [activeTab, setActiveTab] = useState('All');
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const { user, projects } = useAuth();
+  const { user, projects, deleteProject } = useAuth();
 
   const filteredProjects = (projects || []).filter(p => {
     const matchesSearch = p.name.toLowerCase().includes(searchQuery.toLowerCase());
@@ -232,9 +233,24 @@ const ProjectsList: React.FC = () => {
                                     </div>
                                 </td>
                                 <td className="px-6 py-5 text-right">
-                                    <Link to={`/projects/${project.id}`} className="text-text-muted hover:text-text-primary transition-colors">
-                                        <ExternalLink size={18} />
-                                    </Link>
+                                    <div className="flex items-center justify-end gap-2">
+                                        <Link to={`/projects/${project.id}`} className="p-2 text-text-muted hover:text-text-primary transition-colors">
+                                            <ExternalLink size={18} />
+                                        </Link>
+                                        {user?.role === 'admin' && (
+                                            <button 
+                                                onClick={() => {
+                                                    if (window.confirm('Are you sure you want to delete this project?')) {
+                                                        deleteProject(project.id);
+                                                    }
+                                                }}
+                                                className="p-2 text-text-muted hover:text-red-500 transition-colors"
+                                                title="Delete Project"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
                         ))}

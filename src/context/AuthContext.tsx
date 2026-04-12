@@ -35,6 +35,10 @@ interface AuthContextType {
     allUsers: User[];
     approveUser: (id: string) => Promise<void>;
     rejectUser: (id: string) => Promise<void>;
+    deleteUser: (id: string) => Promise<void>;
+    deleteProject: (id: string) => Promise<void>;
+    deleteInvoice: (id: string) => Promise<void>;
+    deleteTicket: (id: string) => Promise<void>;
     forgotPassword: (email: string) => Promise<void>;
     resetPassword: (email: string, token: string, newPassword: string) => Promise<void>;
     projects: any[];
@@ -230,6 +234,54 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
     };
 
+    // ── Admin: Delete User ────────────────────────────────────────────────────
+    const deleteUser = async (id: string): Promise<void> => {
+        try {
+            await api.delete(`/api/users/${id}`);
+            setAllUsers((prev: User[]) => prev.filter((u: User) => u.id !== id));
+            toast.success('User deleted successfully');
+        } catch (err: unknown) {
+            const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+            toast.error(message || 'Failed to delete user');
+        }
+    };
+
+    // ── Admin: Delete Project ────────────────────────────────────────────────────
+    const deleteProject = async (id: string): Promise<void> => {
+        try {
+            await api.delete(`/api/projects/${id}`);
+            setProjects((prev: any[]) => prev.filter((p: any) => p.id !== id));
+            toast.success('Project deleted successfully');
+        } catch (err: unknown) {
+            const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+            toast.error(message || 'Failed to delete project');
+        }
+    };
+
+    // ── Admin: Delete Invoice ────────────────────────────────────────────────────
+    const deleteInvoice = async (id: string): Promise<void> => {
+        try {
+            await api.delete(`/api/invoices/${id}`);
+            setInvoices((prev: any[]) => prev.filter((i: any) => i.id !== id));
+            toast.success('Invoice deleted successfully');
+        } catch (err: unknown) {
+            const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+            toast.error(message || 'Failed to delete invoice');
+        }
+    };
+
+    // ── Admin: Delete Ticket ────────────────────────────────────────────────────
+    const deleteTicket = async (id: string): Promise<void> => {
+        try {
+            await api.delete(`/api/tickets/${id}`);
+            setTickets((prev: any[]) => prev.filter((t: any) => t.id !== id));
+            toast.success('Ticket deleted successfully');
+        } catch (err: unknown) {
+            const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
+            toast.error(message || 'Failed to delete ticket');
+        }
+    };
+
     // ── Forgot Password ───────────────────────────────────────────────────────
     const forgotPassword = async (email: string): Promise<void> => {
         try {
@@ -281,6 +333,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             allUsers,
             approveUser,
             rejectUser,
+            deleteUser,
+            deleteProject,
+            deleteInvoice,
+            deleteTicket,
             forgotPassword,
             resetPassword,
             projects,

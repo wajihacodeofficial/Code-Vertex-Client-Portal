@@ -432,6 +432,17 @@ app.patch('/api/users/:id/status', async (req, res) => {
     }
 });
 
+app.delete('/api/users/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { error } = await supabase.from('users').delete().eq('id', id);
+        if (error) throw error;
+        res.json({ message: 'User deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 // ═══════════════════════════════════════════════════════════════
 // PROJECTS ROUTES
 // ═══════════════════════════════════════════════════════════════
@@ -483,6 +494,35 @@ app.post('/api/projects', async (req, res) => {
     }
 });
 
+app.delete('/api/projects/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { error } = await supabase.from('projects').delete().eq('id', id);
+        if (error) throw error;
+        res.json({ message: 'Project deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.patch('/api/projects/:id', async (req, res) => {
+    const { id } = req.params;
+    const updates = req.body;
+    try {
+        const { data, error } = await supabase
+            .from('projects')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .maybeSingle();
+            
+        if (error) throw error;
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
 
 // ═══════════════════════════════════════════════════════════════
 // INVOICES ROUTES
@@ -515,6 +555,36 @@ app.post('/api/invoices', async (req, res) => {
     }
 });
 
+app.delete('/api/invoices/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { error } = await supabase.from('invoices').delete().eq('id', id);
+        if (error) throw error;
+        res.json({ message: 'Invoice deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.patch('/api/invoices/:id', async (req, res) => {
+    const { id } = req.params;
+    const updates = req.body;
+    try {
+        const { data, error } = await supabase
+            .from('invoices')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .maybeSingle();
+            
+        if (error) throw error;
+        res.json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+
 
 // ═══════════════════════════════════════════════════════════════
 // TICKETS ROUTES
@@ -542,6 +612,35 @@ app.post('/api/tickets', async (req, res) => {
             .maybeSingle();
         if (error) throw error;
         res.status(201).json(data);
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.delete('/api/tickets/:id', async (req, res) => {
+    const { id } = req.params;
+    try {
+        const { error } = await supabase.from('tickets').delete().eq('id', id);
+        if (error) throw error;
+        res.json({ message: 'Ticket deleted successfully' });
+    } catch (err) {
+        res.status(500).json({ error: err.message });
+    }
+});
+
+app.patch('/api/tickets/:id', async (req, res) => {
+    const { id } = req.params;
+    const updates = req.body;
+    try {
+        const { data, error } = await supabase
+            .from('tickets')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .maybeSingle();
+            
+        if (error) throw error;
+        res.json(data);
     } catch (err) {
         res.status(500).json({ error: err.message });
     }

@@ -3,7 +3,7 @@ import { Search, CheckCircle2, XCircle, Mail, Globe, Settings, ShieldCheck } fro
 import { useAuth } from '../context/AuthContext';
 
 const AdminClients: React.FC = () => {
-    const { allUsers, approveUser, rejectUser } = useAuth();
+    const { allUsers, approveUser, rejectUser, deleteUser } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
 
     const clients = allUsers.filter(u => 
@@ -116,7 +116,16 @@ const AdminClients: React.FC = () => {
                                     <td className="px-6 py-5 text-right">
                                         <div className="flex items-center justify-end gap-2">
                                             <button className="p-2 text-text-muted hover:text-text-primary transition-colors"><Settings size={18} /></button>
-                                            <button className="p-2 text-text-muted hover:text-red-500 transition-colors"><XCircle size={18} /></button>
+                                            <button 
+                                                onClick={() => {
+                                                    if (window.confirm('Are you sure you want to delete this user?')) {
+                                                        deleteUser(client.id);
+                                                    }
+                                                }}
+                                                className="p-2 text-text-muted hover:text-red-500 transition-colors"
+                                            >
+                                                <XCircle size={18} />
+                                            </button>
                                         </div>
                                     </td>
                                 </tr>

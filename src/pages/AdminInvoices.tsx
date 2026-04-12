@@ -9,7 +9,8 @@ import {
   DollarSign,
   Download,
   AlertCircle,
-  X
+  X,
+  Trash2
 } from 'lucide-react';
 
 import { useAuth } from '../context/AuthContext';
@@ -18,7 +19,7 @@ import dayjs from 'dayjs';
 import { toast } from 'react-hot-toast';
 
 const AdminInvoices: React.FC = () => {
-    const { invoices, adminStats, projects, fetchAdminData } = useAuth();
+    const { invoices, adminStats, projects, fetchAdminData, deleteInvoice } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -181,6 +182,17 @@ const AdminInvoices: React.FC = () => {
                                         <div className="flex items-center justify-end gap-2">
                                             <button className="p-2.5 hover:text-primary text-text-muted transition-colors rounded-xl hover:bg-white/5" title="Transmit"><Send size={16} /></button>
                                             <button className="p-2.5 hover:text-primary text-text-muted transition-colors rounded-xl hover:bg-white/5" title="Export PDF"><Download size={16} /></button>
+                                            <button 
+                                                onClick={() => {
+                                                    if (window.confirm('Are you sure you want to delete this invoice?')) {
+                                                        deleteInvoice(inv.id);
+                                                    }
+                                                }}
+                                                className="p-2.5 hover:text-red-500 text-text-muted transition-colors rounded-xl hover:bg-white/5"
+                                                title="Delete Invoice"
+                                            >
+                                                <Trash2 size={16} />
+                                            </button>
                                             <button className="p-2.5 hover:text-primary text-text-muted transition-colors rounded-xl hover:bg-white/5"><MoreVertical size={16} /></button>
                                         </div>
                                     </td>

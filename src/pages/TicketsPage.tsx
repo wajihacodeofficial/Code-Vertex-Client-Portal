@@ -7,13 +7,14 @@ import {
   AlertCircle,
   ChevronRight,
   Flag,
-  X 
+  X,
+  Trash2
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import dayjs from 'dayjs';
 
 const TicketsPage: React.FC = () => {
-    const { tickets, user } = useAuth();
+    const { tickets, user, deleteTicket } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [activeTab, setActiveTab] = useState('All');
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -141,7 +142,23 @@ const TicketsPage: React.FC = () => {
                                     {ticket.status}
                                 </div>
 
-                                <ChevronRight size={20} className="text-text-muted group-hover:text-text-primary transition-colors hidden md:block" />
+                                <div className="flex items-center gap-2">
+                                    <ChevronRight size={20} className="text-text-muted group-hover:text-text-primary transition-colors hidden md:block" />
+                                    {(user?.role === 'admin' || user?.id === ticket.reporter_id) && (
+                                        <button 
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                if (window.confirm('Are you sure you want to delete this ticket?')) {
+                                                    deleteTicket(ticket.id);
+                                                }
+                                            }}
+                                            className="p-1 text-text-muted hover:text-red-500 transition-colors z-10"
+                                            title="Delete Ticket"
+                                        >
+                                            <Trash2 size={18} />
+                                        </button>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
