@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { 
   Plus, 
   Search, 
-  Filter, 
   MoreVertical, 
   FileText, 
   Send,

@@ -9,7 +9,7 @@ import {
   Video,
   Info,
   CheckCheck,
-  ChevronLeft
+  X
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Footer } from '../components/Footer';

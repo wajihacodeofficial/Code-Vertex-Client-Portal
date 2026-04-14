@@ -8,7 +8,6 @@ import {
   ExternalLink,
   Trash2
 } from 'lucide-react';
-import { projects as mockProjects } from '../data/mockData';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import CreateProjectModal from '../components/CreateProjectModal';

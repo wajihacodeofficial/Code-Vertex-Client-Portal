@@ -122,7 +122,7 @@ const AdminDashboard: React.FC = () => {
         <div className="glass-card p-6 rounded-card border shadow-glow">
             <h2 className="text-xl text-text-primary font-display font-bold mb-6">Recent System Activity</h2>
             <div className="space-y-4">
-                {tickets?.slice(0, 3).map((ticket, i) => (
+                {tickets?.slice(0, 3).map((ticket) => (
                     <div key={ticket.id} className="flex gap-4 p-3 rounded-xl bg-white/5 border border-white/5 hover:bg-white/10 transition-colors group">
                         <div className={`w-2 h-2 mt-1.5 rounded-full shadow-glow shrink-0 ${ticket.priority === 'High' ? 'bg-red-500' : 'bg-primary'}`}></div>
                         <div className="flex-1">
