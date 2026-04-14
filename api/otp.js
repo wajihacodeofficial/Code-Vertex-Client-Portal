@@ -11,6 +11,9 @@ const transporter = nodemailer.createTransport({
         user: process.env.SMTP_USER || process.env.ZOHO_EMAIL,
         pass: process.env.SMTP_PASS || process.env.ZOHO_PASSWORD,
     },
+    tls: {
+       rejectUnauthorized: false
+    }
 });
 
 /**
@@ -102,8 +105,7 @@ async function sendOTP(email) {
         });
     } catch (smtpErr) {
         console.error('❌  [SMTP Error] Failed to send email:', smtpErr.message);
-        console.log(`👉  FALLBACK CODE FOR ${email}: ${otp}`);
-        // We log it and continue so the user account creation isn't blocked by email failure
+        throw new Error('Failed to send verification email: ' + smtpErr.message);
     }
 }
 
@@ -223,7 +225,7 @@ async function sendPasswordResetLink(email) {
         });
     } catch (smtpErr) {
         console.error('❌  [SMTP Error] Failed to send password reset email:', smtpErr.message);
-        console.log(`👉  FALLBACK LINK FOR ${email}: ${resetLink}`);
+        throw new Error('Failed to send password reset email: ' + smtpErr.message);
     }
 }
 
