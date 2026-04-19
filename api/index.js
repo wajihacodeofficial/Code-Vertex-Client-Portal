@@ -418,15 +418,43 @@ app.patch('/api/users/:id/status', async (req, res) => {
     }
 
     try {
+        // Fetch the user to get their supabase_uid
+        const { data: userProfile, error: fetchError } = await supabase
+            .from('users')
+            .select('supabase_uid, email, email_verified')
+            .eq('id', id)
+            .maybeSingle();
+
+        if (fetchError) throw fetchError;
+
+        // When APPROVING: also confirm email in Supabase Auth so signInWithPassword works
+        if (status === 'approved' && userProfile?.supabase_uid) {
+            // 1. Confirm email in Supabase Auth
+            await supabase.auth.admin.updateUserById(userProfile.supabase_uid, {
+                email_confirm: true,
+            });
+
+            // 2. Also ensure email_verified is true in public.users
+            await supabase
+                .from('users')
+                .update({ email_verified: true })
+                .eq('id', id);
+
+            console.log(`[Approval] Email confirmed in Auth for: ${userProfile.email}`);
+        }
+
+        // Update the status in public.users
         const { data, error } = await supabase
             .from('users')
             .update({ status })
             .eq('id', id)
             .select()
             .maybeSingle();
+
         if (error) throw error;
         res.json(data);
     } catch (err) {
+        console.error('[Approve User Error]:', err.message);
         res.status(500).json({ error: err.message });
     }
 });
