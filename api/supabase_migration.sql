@@ -144,6 +144,13 @@ CREATE POLICY "Enable insert for all"
     ON users FOR INSERT 
     WITH CHECK (true);
 
+DROP POLICY IF EXISTS "Enable all for service role" ON users;
+CREATE POLICY "Enable all for service role" 
+    ON users FOR ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
+
 DROP POLICY IF EXISTS "Users can update own profile" ON users;
 CREATE POLICY "Users can update own profile" 
     ON users FOR UPDATE
@@ -158,3 +165,12 @@ CREATE POLICY "Enable all for service role"
     TO service_role
     USING (true)
     WITH CHECK (true);
+
+-- Ensure roles have proper access
+GRANT ALL ON TABLE users TO service_role;
+GRANT ALL ON TABLE users TO anon;
+GRANT ALL ON TABLE users TO authenticated;
+
+GRANT ALL ON TABLE otp_verifications TO service_role;
+GRANT ALL ON TABLE otp_verifications TO anon;
+GRANT ALL ON TABLE otp_verifications TO authenticated;
