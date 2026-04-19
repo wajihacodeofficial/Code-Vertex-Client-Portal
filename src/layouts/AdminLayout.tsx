@@ -23,7 +23,7 @@ import {
   X,
   Globe
 } from 'lucide-react';
-import { NavLink, Link, useLocation } from 'react-router-dom';
+import { NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { BrandLogo } from '../components/BrandLogo';
 import { Footer } from '../components/Footer';
@@ -79,12 +79,13 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState([
-    { id: 1, title: 'New Client Registration', desc: 'Enterprise LLC submitted a profile.', time: '10m ago', unread: true },
-    { id: 2, title: 'Invoice Paid', desc: 'INV-2026-004 has been settled.', time: '2h ago', unread: true },
-    { id: 3, title: 'System Alert', desc: 'Database optimization complete.', time: '5h ago', unread: true },
-    { id: 4, title: 'Support Ticket', desc: 'Critical bug reported on mobile.', time: '1d ago', unread: false }
+    { id: 1, title: 'New Client Registration', desc: 'Enterprise LLC submitted a profile.', time: '10m ago', unread: true, link: '/admin/clients' },
+    { id: 2, title: 'Invoice Paid', desc: 'INV-2026-004 has been settled.', time: '2h ago', unread: true, link: '/admin/invoices' },
+    { id: 3, title: 'System Alert', desc: 'Database optimization complete.', time: '5h ago', unread: true, link: '/admin/dashboard' },
+    { id: 4, title: 'Support Ticket', desc: 'Critical bug reported on mobile.', time: '1d ago', unread: false, link: '/admin/tickets' }
   ]);
   const location = useLocation();
+  const navigate = useNavigate();
   const { logout, user, allUsers, tickets } = useAuth();
   
   const pendingClientsCount = allUsers?.filter((u: any) => u.role === 'client' && u.status === 'pending').length || 0;
@@ -333,7 +334,13 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
                   <div className="max-h-80 overflow-y-auto">
                     {notifications.map((notif: any) => (
                       <div key={notif.id} 
-                           onClick={() => setNotifications(notifications.map((n: any) => n.id === notif.id ? { ...n, unread: false } : n))}
+                           onClick={() => {
+                             setNotifications(notifications.map((n: any) => n.id === notif.id ? { ...n, unread: false } : n));
+                             if (notif.link) {
+                               navigate(notif.link);
+                               setShowNotifications(false);
+                             }
+                           }}
                            className={`p-4 border-b border-white/5 hover:bg-white/5 transition-colors cursor-pointer ${notif.unread ? 'bg-[#00CFFF]/5' : ''}`}>
                         <div className="flex justify-between items-start mb-1">
                           <p className={`text-xs font-bold ${notif.unread ? 'text-[#00CFFF]' : 'text-text-primary'}`}>{notif.title}</p>
