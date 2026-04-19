@@ -186,35 +186,9 @@ const DashboardHome: React.FC = () => {
                     {/* Upcoming Milestones */}
                     <div className="space-y-4 pt-4">
                         <h2 className="text-xl text-text-primary px-2 uppercase tracking-widest font-bold">Upcoming Milestones</h2>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="glass-card p-5 rounded-card border shadow-glow border-primary/20 bg-primary/5 group transition-all hover:bg-primary/10">
-                                <div className="flex justify-between items-start">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-primary/20 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                                            <Calendar size={20} />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-bold text-text-primary">Project Initialization</p>
-                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest mt-0.5">Live Dashboard Sync</p>
-                                        </div>
-                                    </div>
-                                    <span className="text-[10px] font-black text-primary bg-primary/10 px-2 py-0.5 rounded uppercase">Active</span>
-                                </div>
-                            </div>
-                            <div className="glass-card p-5 rounded-card border shadow-glow group hover:bg-white/5 transition-all">
-                                <div className="flex justify-between items-start">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-10 h-10 rounded-lg bg-surface border border-white/10 flex items-center justify-center text-text-muted group-hover:scale-110 transition-transform">
-                                            <CheckCircle2 size={20} />
-                                        </div>
-                                        <div>
-                                            <p className="text-sm font-bold text-text-primary opacity-70">Core Development Phase</p>
-                                            <p className="text-[10px] text-text-muted uppercase font-bold tracking-widest mt-0.5">Automated Oversight</p>
-                                        </div>
-                                    </div>
-                                    <span className="text-[10px] font-black text-success bg-success/10 px-2 py-0.5 rounded uppercase">Ready</span>
-                                </div>
-                            </div>
+                        <div className="text-center py-12 border border-dashed border-white/10 rounded-xl bg-white/2">
+                            <Calendar size={32} className="mx-auto mb-3 opacity-10" />
+                            <p className="text-xs text-text-muted uppercase tracking-widest font-bold">No upcoming milestones scheduled</p>
                         </div>
                     </div>
                 </div>

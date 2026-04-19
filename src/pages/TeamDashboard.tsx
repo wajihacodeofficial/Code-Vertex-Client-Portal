@@ -24,8 +24,8 @@ const TeamDashboard: React.FC = () => {
                 <CheckSquare size={80} />
             </div>
             <p className="text-text-muted text-xs font-bold uppercase tracking-widest mb-2 relative z-10">My Workspace</p>
-            <h3 className="text-3xl font-black text-text-primary relative z-10">12 Tasks</h3>
-            <p className="text-xs text-red-400 font-bold mt-2 relative z-10">3 High Priority</p>
+            <h3 className="text-3xl font-black text-text-primary relative z-10">0 Tasks</h3>
+            <p className="text-xs text-text-muted font-bold mt-2 relative z-10">Ready for allocation</p>
           </div>
 
           <div className="glass-card p-6 rounded-card border shadow-glow relative group overflow-hidden">
@@ -33,8 +33,8 @@ const TeamDashboard: React.FC = () => {
                 <Briefcase size={80} />
             </div>
             <p className="text-text-muted text-xs font-bold uppercase tracking-widest mb-2 relative z-10">Active Client Projects</p>
-            <h3 className="text-3xl font-black text-text-primary relative z-10">5</h3>
-            <p className="text-xs text-emerald font-bold mt-2 relative z-10">All on schedule</p>
+            <h3 className="text-3xl font-black text-text-primary relative z-10">0</h3>
+            <p className="text-xs text-text-muted font-bold mt-2 relative z-10">No active assignments</p>
           </div>
 
           <div className="glass-card p-6 rounded-card border shadow-glow relative group overflow-hidden">
@@ -42,8 +42,8 @@ const TeamDashboard: React.FC = () => {
                 <Clock size={80} />
             </div>
             <p className="text-text-muted text-xs font-bold uppercase tracking-widest mb-2 relative z-10">Deadlines This Week</p>
-            <h3 className="text-3xl font-black text-text-primary relative z-10">4</h3>
-            <p className="text-xs text-text-muted font-bold mt-2 relative z-10">Next: API Integration (Tomorrow)</p>
+            <h3 className="text-3xl font-black text-text-primary relative z-10">0</h3>
+            <p className="text-xs text-text-muted font-bold mt-2 relative z-10">All clear</p>
           </div>
       </div>
 
@@ -51,37 +51,20 @@ const TeamDashboard: React.FC = () => {
         <div className="glass-card p-6 rounded-card border shadow-glow">
             <h2 className="text-xl text-text-primary font-display font-bold mb-6">High Priority Tasks</h2>
             <div className="space-y-4">
-                {[
-                    { task: 'Fix critical auth vulnerability', project: 'LogistiX Mobile App', code: 'LOG-120' },
-                    { task: 'Finalize payment gateway Webhooks', project: 'E-Commerce Core', code: 'ECO-44' },
-                    { task: 'Review new SLA documents sent by Wajiha', project: 'Internal', code: 'INT-09' }
-                ].map((item, i) => (
-                    <div key={i} className="flex flex-col gap-2 p-4 rounded-xl bg-white/5 border border-white/5 hover:border-red-500/50 transition-colors cursor-pointer group">
-                        <div className="flex justify-between items-start">
-                            <p className="text-sm font-medium text-text-primary group-hover:text-red-400 transition-colors">{item.task}</p>
-                            <span className="text-[10px] font-black bg-white/10 px-2 py-0.5 rounded text-text-muted">{item.code}</span>
-                        </div>
-                        <p className="text-xs text-text-muted uppercase tracking-widest font-bold">{item.project}</p>
-                    </div>
-                ))}
+                <div className="text-center py-20 border border-dashed border-white/10 rounded-xl">
+                    <CheckSquare size={48} className="mx-auto mb-4 opacity-10 text-primary" />
+                    <p className="text-sm text-text-muted uppercase tracking-widest font-bold">No High Priority Tasks Assigned</p>
+                </div>
             </div>
         </div>
 
         <div className="glass-card p-6 rounded-card border shadow-glow border-red-500/20 bg-red-500/5">
             <h2 className="text-xl text-text-primary font-display font-bold mb-6">Recent Internal Notes</h2>
             <div className="space-y-4">
-                {[
-                    { text: 'Client requested changing the entire color scheme again. Need to push back or charge more.', author: 'Admin' },
-                    { text: 'AWS server migration scheduled for Friday at 2am.', author: 'Partner Dev' }
-                ].map((act, i) => (
-                    <div key={i} className="flex gap-4 p-3 rounded-xl bg-background/50 border border-red-500/20">
-                        <div className="w-2 h-2 mt-1.5 rounded-full bg-red-500 shadow-[0_0_10px_rgba(239,68,68,0.5)] shrink-0"></div>
-                        <div>
-                            <p className="text-sm font-medium text-text-primary opacity-90">{act.text}</p>
-                            <p className="text-[10px] text-red-500/80 mt-1 uppercase tracking-widest font-bold">{act.author}</p>
-                        </div>
-                    </div>
-                ))}
+                <div className="text-center py-20 border border-dashed border-red-500/20 rounded-xl">
+                    <p className="text-sm text-red-500/50 uppercase tracking-widest font-bold font-sans">Internal Feed Offline</p>
+                    <p className="text-[10px] text-red-500/30 mt-2 uppercase tracking-[0.2em] font-black">Waiting for project initiation</p>
+                </div>
                 <p className="text-xs text-text-muted italic mt-4">⚠️ These notes are strictly hidden from clients.</p>
             </div>
         </div>
