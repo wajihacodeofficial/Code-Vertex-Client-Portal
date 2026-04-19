@@ -34,7 +34,7 @@ const AdminDashboard: React.FC = () => {
             </div>
             <p className="text-text-muted text-xs font-bold uppercase tracking-widest mb-2 relative z-10">Total Revenue</p>
             <h3 className="text-3xl font-black text-text-primary relative z-10">
-                {adminStats ? `$${adminStats.totalRevenue.toLocaleString()}` : '$0'}
+                {'$' + (adminStats?.totalRevenue || 0).toLocaleString()}
             </h3>
             <p className="text-xs text-emerald font-bold mt-2 relative z-10">{adminStats?.totalRevenue ? '+14% this month' : 'No data'}</p>
           </div>
