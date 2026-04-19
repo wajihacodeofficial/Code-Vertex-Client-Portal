@@ -41,11 +41,11 @@ const DashboardHome: React.FC = () => {
     const { user, projects, invoices, tickets } = useAuth();
     
     // Stat calculations
-    const activeProjectsCount = projects?.filter(p => p.status !== 'Completed').length || 0;
+    const activeProjectsCount = projects?.filter((p: any) => p.status !== 'Completed').length || 0;
     const pendingDeliverables = projects?.length || 0; // Fallback for now
-    const unpaidInvoices = invoices?.filter(i => i.status === 'Unpaid' || i.status === 'Overdue') || [];
-    const totalUnpaidAmount = unpaidInvoices.reduce((acc, i) => acc + (i.amount || 0), 0);
-    const openTicketsCount = tickets?.filter(t => t.status === 'Open').length || 0;
+    const unpaidInvoices = invoices?.filter((i: any) => i.status === 'Unpaid' || i.status === 'Overdue') || [];
+    const totalUnpaidAmount = unpaidInvoices.reduce((acc: number, i: any) => acc + (i.amount || 0), 0);
+    const openTicketsCount = tickets?.filter((t: any) => t.status === 'Open').length || 0;
 
     return (
         <div className="space-y-8 pb-20">
@@ -128,7 +128,7 @@ const DashboardHome: React.FC = () => {
                                         <tr>
                                             <td colSpan={5} className="px-6 py-10 text-center text-text-muted text-sm uppercase tracking-widest font-bold">No active projects found in your dashboard.</td>
                                         </tr>
-                                    ) : projects?.slice(0, 3).map(project => (
+                                    ) : projects?.slice(0, 3).map((project: any) => (
                                         <tr key={project.id} className="hover:bg-white/2 transition-colors group cursor-pointer">
                                             <td className="px-6 py-5">
                                                 <div className="flex items-center gap-3">
@@ -199,7 +199,7 @@ const DashboardHome: React.FC = () => {
                     <div className="glass-card rounded-card border shadow-glow relative h-[calc(100%-48px)] bg-white/2">
                         <div className="absolute inset-0 bg-linear-to-t from-background via-transparent to-transparent opacity-60"></div>
                         <div className="p-6 space-y-8 relative z-10">
-                            {tickets?.slice(0, 3).map((ticket) => (
+                            {tickets?.slice(0, 3).map((ticket: any) => (
                                 <div key={ticket.id} className="flex gap-4 group">
                                     <div className={`w-4 h-4 rounded-full mt-1 border-4 border-surface ring-2 shadow-glow shrink-0 z-10 transition-transform group-hover:scale-125 ${
                                         ticket.priority === 'High' ? 'bg-red-500 ring-red-500/20' :
