@@ -679,11 +679,11 @@ app.get('/api/admin/stats', async (req, res) => {
         const { data: tickets } = await supabase.from('tickets').select('*');
 
         const stats = {
-            totalRevenue: invoices?.filter(i => i.status === 'Paid').reduce((sum, i) => sum + Number(i.amount), 0) || 0,
-            activeProjects: projects?.filter(p => p.status === 'In Progress').length || 0,
-            activeClients: users?.filter(u => u.role === 'client' && u.status === 'approved').length || 0,
-            pendingApprovals: users?.filter(u => u.status === 'pending' && u.email_verified === true).length || 0,
-            totalUsers: users?.length || 0
+            totalRevenue: (invoices || []).filter(i => i.status === 'Paid').reduce((sum, i) => sum + Number(i.amount), 0) || 0,
+            activeProjects: (projects || []).filter(p => p.status === 'In Progress').length || 0,
+            activeClients: (users || []).filter(u => u.role === 'client' && u.status === 'approved').length || 0,
+            pendingApprovals: (users || []).filter(u => u.status === 'pending' && u.email_verified === true).length || 0,
+            totalUsers: (users || []).length || 0
         };
 
         res.json({

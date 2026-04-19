@@ -83,8 +83,8 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
   const { logout, user, allUsers, tickets } = useAuth();
   
-  const pendingClientsCount = allUsers?.filter((u: any) => u.role === 'client' && u.status === 'pending').length || 0;
-  const openTicketsCount = tickets?.filter((t: any) => t.status === 'Open' || t.status === 'In Progress').length || 0;
+  const pendingClientsCount = (allUsers || []).filter((u: any) => u.role === 'client' && u.status === 'pending').length || 0;
+  const openTicketsCount = (tickets || []).filter((t: any) => t.status === 'Open' || t.status === 'In Progress').length || 0;
 
   const mainContentRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);

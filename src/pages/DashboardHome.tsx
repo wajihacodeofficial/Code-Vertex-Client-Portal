@@ -40,11 +40,11 @@ const DashboardHome: React.FC = () => {
     const { user, projects, invoices, tickets } = useAuth();
     
     // Stat calculations
-    const activeProjectsCount = projects?.filter((p: any) => p.status !== 'Completed').length || 0;
-    const pendingDeliverables = projects?.length || 0; // Fallback for now
-    const unpaidInvoices = invoices?.filter((i: any) => i.status === 'Unpaid' || i.status === 'Overdue') || [];
+    const activeProjectsCount = (projects || []).filter((p: any) => p.status !== 'Completed').length || 0;
+    const pendingDeliverables = (projects || []).length || 0; // Fallback for now
+    const unpaidInvoices = (invoices || []).filter((i: any) => i.status === 'Unpaid' || i.status === 'Overdue') || [];
     const totalUnpaidAmount = unpaidInvoices.reduce((acc: number, i: any) => acc + (i.amount || 0), 0);
-    const openTicketsCount = tickets?.filter((t: any) => t.status === 'Open').length || 0;
+    const openTicketsCount = (tickets || []).filter((t: any) => t.status === 'Open').length || 0;
 
     return (
         <div className="space-y-8 pb-20">
