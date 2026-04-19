@@ -131,13 +131,30 @@ CREATE TABLE IF NOT EXISTS tickets (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
 );
 
--- ─── Row Level Security (RLS) ─────────────────────────────────
 -- Protect users table (Prevents regular users from reading other accounts)
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
+
 DROP POLICY IF EXISTS "Users can read own profile" ON users;
 CREATE POLICY "Users can read own profile" 
     ON users FOR SELECT 
     USING (auth.uid() = supabase_uid);
 
+DROP POLICY IF EXISTS "Enable insert for all" ON users;
+CREATE POLICY "Enable insert for all" 
+    ON users FOR INSERT 
+    WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Users can update own profile" ON users;
+CREATE POLICY "Users can update own profile" 
+    ON users FOR UPDATE
+    USING (auth.uid() = supabase_uid);
+
 -- Backend (service role bypassing) manages OTPs
 ALTER TABLE otp_verifications ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Enable all for service role" ON otp_verifications;
+CREATE POLICY "Enable all for service role" 
+    ON otp_verifications ALL
+    TO service_role
+    USING (true)
+    WITH CHECK (true);
