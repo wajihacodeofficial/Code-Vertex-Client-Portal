@@ -31,7 +31,7 @@ function generateOTP() {
  */
 async function sendOTP(email) {
     const otp = generateOTP();
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes from now
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
 
     // Invalidate any previous OTPs for this email
     await supabase
@@ -87,7 +87,7 @@ async function sendOTP(email) {
                     <div style="padding: 40px 32px; text-align: center;">
                         <p style="color: #a0a0a0; font-size: 15px; margin: 0 0 28px; line-height: 1.6;">
                             Use the code below to verify your email address.<br/>
-                            This code expires in <strong style="color: #22c55e;">15 minutes</strong>.
+                            This code expires in <strong style="color: #22c55e;">5 minutes</strong>.
                         </p>
                         <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 28px; margin: 0 auto 28px; display: inline-block; min-width: 200px;">
                             <span style="font-size: 42px; font-weight: 900; letter-spacing: 12px; color: #22c55e; font-family: 'Courier New', monospace;">${otp}</span>
