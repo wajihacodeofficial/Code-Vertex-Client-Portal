@@ -215,8 +215,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const approveUser = async (id: string): Promise<void> => {
         try {
             const { data: updated } = await api.patch(`/api/users/${id}/status`, { status: 'approved' });
-            setAllUsers((prev: User[]) => prev.map((u: User) => u.id === id ? { ...u, status: updated.status } : u));
-            toast.success('User account approved successfully');
+            if (updated && updated.status) {
+                setAllUsers((prev: User[]) => prev.map((u: User) => u.id === id ? { ...u, status: updated.status } : u));
+                toast.success('User account approved successfully');
+            } else {
+                // Fallback local update if the response doesn't contain the object
+                setAllUsers((prev: User[]) => prev.map((u: User) => u.id === id ? { ...u, status: 'approved' } : u));
+                toast.success('User account approved successfully');
+            }
         } catch (err: unknown) {
             const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
             toast.error(message || 'Failed to approve user');
@@ -227,8 +233,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const rejectUser = async (id: string): Promise<void> => {
         try {
             const { data: updated } = await api.patch(`/api/users/${id}/status`, { status: 'rejected' });
-            setAllUsers((prev: User[]) => prev.map((u: User) => u.id === id ? { ...u, status: updated.status } : u));
-            toast.success('User account rejected');
+            if (updated && updated.status) {
+                setAllUsers((prev: User[]) => prev.map((u: User) => u.id === id ? { ...u, status: updated.status } : u));
+                toast.success('User account rejected');
+            } else {
+                 // Fallback local update if the response doesn't contain the object
+                 setAllUsers((prev: User[]) => prev.map((u: User) => u.id === id ? { ...u, status: 'rejected' } : u));
+                 toast.success('User account rejected');
+            }
         } catch (err: unknown) {
             const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
             toast.error(message || 'Failed to reject user');
