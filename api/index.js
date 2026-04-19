@@ -652,7 +652,7 @@ app.patch('/api/tickets/:id', async (req, res) => {
 
 app.get('/api/admin/stats', async (req, res) => {
     try {
-        const { data: users } = await supabase.from('users').select('role, status');
+        const { data: users } = await supabase.from('users').select('role, status, email_verified');
         const { data: projects } = await supabase.from('projects').select('status');
         const { data: invoices } = await supabase.from('invoices').select('amount, status');
 
@@ -660,7 +660,7 @@ app.get('/api/admin/stats', async (req, res) => {
             totalRevenue: invoices?.filter(i => i.status === 'Paid').reduce((sum, i) => sum + Number(i.amount), 0) || 0,
             activeProjects: projects?.filter(p => p.status === 'In Progress').length || 0,
             activeClients: users?.filter(u => u.role === 'client' && u.status === 'approved').length || 0,
-            pendingApprovals: users?.filter(u => u.status === 'pending').length || 0,
+            pendingApprovals: users?.filter(u => u.status === 'pending' && u.email_verified === true).length || 0,
             totalUsers: users?.length || 0
         };
 

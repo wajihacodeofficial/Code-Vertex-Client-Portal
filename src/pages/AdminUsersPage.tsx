@@ -30,7 +30,7 @@ const AdminUsersPage: React.FC = () => {
         return matchesSearch && matchesRole && matchesStatus;
     });
 
-    const pendingApprovals = allUsers.filter(u => u.status === 'pending');
+    const pendingApprovals = allUsers.filter(u => u.status === 'pending' && u.email_verified === true);
 
     return (
         <div className="space-y-8 pb-20 animate-in">

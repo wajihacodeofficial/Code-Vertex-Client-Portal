@@ -15,6 +15,7 @@ export interface User {
     company?: string;
     avatar?: string;
     status?: 'pending' | 'approved' | 'rejected';
+    email_verified?: boolean;
 }
 
 export interface AdminStats {

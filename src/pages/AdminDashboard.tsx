@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 
 const AdminDashboard: React.FC = () => {
   const { allUsers, approveUser, rejectUser, adminStats, tickets } = useAuth();
-  const pendingUsers = allUsers?.filter(u => u.status === 'pending') || [];
+  const pendingUsers = allUsers?.filter(u => u.status === 'pending' && u.email_verified === true) || [];
 
   return (
     <div className="space-y-8 pb-20">
