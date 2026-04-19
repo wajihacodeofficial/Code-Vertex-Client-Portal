@@ -96,18 +96,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const fetchAdminStats = async () => {
         try {
             const { data } = await api.get('/api/admin/stats');
-            setAdminStats(data);
+            // API now returns { stats, users, projects, invoices, tickets }
+            setAdminStats(data.stats ?? data); // fallback in case old format
+            if (data.users) setAllUsers(data.users);
+            if (data.projects) setProjects(data.projects);
+            if (data.invoices) setInvoices(data.invoices);
+            if (data.tickets) setTickets(data.tickets);
         } catch { /* Suppress */ }
     };
 
     const fetchAdminData = async () => {
-        await Promise.all([
-            fetchAllUsers(),
-            fetchProjects(),
-            fetchInvoices(),
-            fetchTickets(),
-            fetchAdminStats()
-        ]);
+        // Single efficient call - fetchAdminStats now populates everything
+        await fetchAdminStats();
     };
 
     // ── Restore session on mount ──

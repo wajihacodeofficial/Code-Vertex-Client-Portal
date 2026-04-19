@@ -66,7 +66,6 @@ app.post('/api/auth/signup', async (req, res) => {
         }
 
         // Step 3: Insert user profile into public.users
-        const status = role === 'client' ? 'pending' : 'pending'; // All new users start pending
         const { error: dbError } = await supabase
             .from('users')
             .insert({
@@ -75,13 +74,13 @@ app.post('/api/auth/signup', async (req, res) => {
                 name,
                 role,
                 phone: phone || null,
-                status,
+                status: 'pending',
                 email_verified: false,
-                password_hash: 'SUPABASE_AUTH_MANAGED', // Satisfy legacy DB constraint
             });
 
         if (dbError) {
             // Rollback: delete the auth user if profile insert fails
+            console.error('[Signup DB Error]:', dbError.message, dbError.details);
             await supabase.auth.admin.deleteUser(authData.user.id);
             return res.status(500).json({ error: 'Failed to create user profile: ' + dbError.message });
         }
@@ -682,7 +681,7 @@ app.get('/api/admin/stats', async (req, res) => {
             totalRevenue: (invoices || []).filter(i => i.status === 'Paid').reduce((sum, i) => sum + Number(i.amount), 0) || 0,
             activeProjects: (projects || []).filter(p => p.status === 'In Progress').length || 0,
             activeClients: (users || []).filter(u => u.role === 'client' && u.status === 'approved').length || 0,
-            pendingApprovals: (users || []).filter(u => u.status === 'pending').length || 0,
+            pendingApprovals: (users || []).filter(u => u.status === 'pending' && u.email_verified === true).length || 0,
             totalUsers: (users || []).length || 0
         };
 
