@@ -8,8 +8,7 @@ import {
   TrendingUp,
   ArrowUpRight,
   MoreVertical,
-  Calendar,
-  CheckCircle2
+  Calendar
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
