@@ -673,9 +673,10 @@ app.patch('/api/tickets/:id', async (req, res) => {
 
 app.get('/api/admin/stats', async (req, res) => {
     try {
-        const { data: users } = await supabase.from('users').select('role, status, email_verified');
-        const { data: projects } = await supabase.from('projects').select('status');
-        const { data: invoices } = await supabase.from('invoices').select('amount, status');
+        const { data: users } = await supabase.from('users').select('*');
+        const { data: projects } = await supabase.from('projects').select('*');
+        const { data: invoices } = await supabase.from('invoices').select('*');
+        const { data: tickets } = await supabase.from('tickets').select('*');
 
         const stats = {
             totalRevenue: invoices?.filter(i => i.status === 'Paid').reduce((sum, i) => sum + Number(i.amount), 0) || 0,
@@ -685,7 +686,13 @@ app.get('/api/admin/stats', async (req, res) => {
             totalUsers: users?.length || 0
         };
 
-        res.json(stats);
+        res.json({
+            stats,
+            users,
+            projects,
+            invoices,
+            tickets
+        });
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
