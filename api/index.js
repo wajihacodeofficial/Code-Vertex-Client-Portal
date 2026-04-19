@@ -435,10 +435,31 @@ app.patch('/api/users/:id/status', async (req, res) => {
 app.delete('/api/users/:id', async (req, res) => {
     const { id } = req.params;
     try {
+        // Step 1: Fetch the user profile to get the supabase_uid
+        const { data: user, error: fetchError } = await supabase
+            .from('users')
+            .select('supabase_uid, email')
+            .eq('id', id)
+            .maybeSingle();
+            
+        if (fetchError) throw fetchError;
+        
+        if (user && user.supabase_uid) {
+            // Step 2: Delete from Supabase Auth
+            const { error: authError } = await supabase.auth.admin.deleteUser(user.supabase_uid);
+            // If user doesn't exist in auth, we continue (might have been deleted already)
+            if (authError && !authError.message.includes('User not found')) {
+                console.error('Supabase Auth deletion error:', authError.message);
+            }
+        }
+
+        // Step 3: Delete the profile from public.users
         const { error } = await supabase.from('users').delete().eq('id', id);
         if (error) throw error;
-        res.json({ message: 'User deleted successfully' });
+        
+        res.json({ message: 'User and authenticaton account deleted successfully' });
     } catch (err) {
+        console.error('User deletion failed:', err.message);
         res.status(500).json({ error: err.message });
     }
 });
