@@ -78,12 +78,7 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, title: 'New Client Registration', desc: 'Enterprise LLC submitted a profile.', time: '10m ago', unread: true, link: '/admin/clients' },
-    { id: 2, title: 'Invoice Paid', desc: 'INV-2026-004 has been settled.', time: '2h ago', unread: true, link: '/admin/invoices' },
-    { id: 3, title: 'System Alert', desc: 'Database optimization complete.', time: '5h ago', unread: true, link: '/admin/dashboard' },
-    { id: 4, title: 'Support Ticket', desc: 'Critical bug reported on mobile.', time: '1d ago', unread: false, link: '/admin/tickets' }
-  ]);
+  const [notifications, setNotifications] = useState([]);
   const location = useLocation();
   const navigate = useNavigate();
   const { logout, user, allUsers, tickets } = useAuth();
