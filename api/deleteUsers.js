@@ -1,44 +1,44 @@
 const supabase = require('./db');
 
 /**
- * TARGETED USER DELETION SCRIPT
- * Removes users from BOTH public.users and Supabase Auth
+ * MASS DELETION SCRIPT
+ * Removes ALL users from both public.users and Supabase Auth
+ * EXCEPT the specified whitelist.
  */
-const emailsToDelete = [
-    'wajiha@codevertex.solutions',
+const emailsToKeep = [
+    'admin@codevertex.solutions',
     'rehan@codevertex.solutions'
 ];
 
-async function runTargetedCleanup() {
-    console.log('🚀 Starting Targeted User Cleanup...\n');
+async function runCleanup() {
+    console.log('🚀 Starting Mass User Cleanup...\n');
+    console.log(`Whitelist (WILL NOT BE DELETED): ${emailsToKeep.join(', ')}\n`);
 
-    for (const email of emailsToDelete) {
-        try {
-            const lowerEmail = email.toLowerCase();
-            console.log(`🔍 Processing: ${lowerEmail}`);
+    try {
+        // 1. Fetch ALL users from the database
+        const { data: dbUsers, error: fetchErr } = await supabase
+            .from('users')
+            .select('id, email, supabase_uid, name');
 
-            // 1. Find user in the database to get their supabase_uid
-            const { data: user, error: fetchErr } = await supabase
-                .from('users')
-                .select('id, name, supabase_uid')
-                .eq('email', lowerEmail)
-                .maybeSingle();
+        if (fetchErr) {
+            console.error(`❌ DB Fetch Error:`, fetchErr.message);
+            return;
+        }
 
-            if (fetchErr) {
-                console.error(`   ❌ DB Fetch Error for ${lowerEmail}:`, fetchErr.message);
+        console.log(`Found ${dbUsers.length} users in the database.\n`);
+
+        for (const user of dbUsers) {
+            const lowerEmail = user.email.toLowerCase();
+
+            if (emailsToKeep.includes(lowerEmail)) {
+                console.log(`✅ Keeping: ${user.name} (${lowerEmail})`);
                 continue;
             }
 
-            if (!user) {
-                console.warn(`   ⚠️ User not found in database. Checking Supabase Auth directly...`);
-                // Note: Without the UID from the DB, we'd need to list all auth users to find the email
-            } else {
-                console.log(`   👤 Found: ${user.name} (UUID: ${user.id})`);
-            }
+            console.log(`🗑️ Processing Deletion for: ${user.name} (${lowerEmail})`);
 
             // 2. Delete from Supabase Auth
-            // If we found them in the DB, use that UID. If not, we try to find them in Auth by listing.
-            let authUid = user?.supabase_uid;
+            let authUid = user.supabase_uid;
 
             if (!authUid) {
                 const { data: authUsers, error: listError } = await supabase.auth.admin.listUsers();
@@ -53,33 +53,31 @@ async function runTargetedCleanup() {
                 if (authErr) {
                     console.warn(`   ⚠️ Auth Delete Warning: ${authErr.message}`);
                 } else {
-                    console.log(`   ✅ Successfully removed from Supabase Auth.`);
+                    console.log(`   ✅ Removed from Supabase Auth.`);
                 }
             } else {
                 console.log(`   ℹ️ No matching account found in Supabase Auth.`);
             }
 
             // 3. Delete from public.users profile table
-            if (user) {
-                const { error: dbErr } = await supabase
-                    .from('users')
-                    .delete()
-                    .eq('id', user.id);
+            const { error: dbDeleteErr } = await supabase
+                .from('users')
+                .delete()
+                .eq('id', user.id);
 
-                if (dbErr) {
-                    console.error(`   ❌ DB Delete Error:`, dbErr.message);
-                } else {
-                    console.log(`   ✅ Successfully removed from users table.`);
-                }
+            if (dbDeleteErr) {
+                console.error(`   ❌ DB Delete Error:`, dbDeleteErr.message);
+            } else {
+                console.log(`   ✅ Removed from users table.`);
             }
-
-            console.log(`--- Done with ${lowerEmail} ---\n`);
-        } catch (err) {
-            console.error(`   🛑 Unexpected error processing ${email}:`, err.message);
+            console.log('---');
         }
+
+    } catch (err) {
+        console.error(`🛑 Unexpected error during cleanup:`, err.message);
     }
 
-    console.log('✨ Cleanup process finished.');
+    console.log('✨ Mass cleanup process finished.');
 }
 
-runTargetedCleanup();
+runCleanup();
