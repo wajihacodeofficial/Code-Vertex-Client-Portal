@@ -93,7 +93,7 @@ async function sendOTP(email) {
                             This code expires in <strong style="color: #22c55e;">5 minutes</strong>.
                         </p>
                         <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 28px; margin: 0 auto 28px; display: inline-block; min-width: 200px;">
-                            <span style="font-size: 42px; font-weight: 900; letter-spacing: 12px; color: #22c55e; font-family: 'Courier New', monospace;">\${otp}</span>
+                            <span style="font-size: 42px; font-weight: 900; letter-spacing: 12px; color: #22c55e; font-family: 'Courier New', monospace;">${otp}</span>
                         </div>
                         <p style="color: #666; font-size: 12px; margin: 0; line-height: 1.6;">
                             If you didn't request this, please ignore this email.<br/>
