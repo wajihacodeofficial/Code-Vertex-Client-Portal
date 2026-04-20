@@ -54,8 +54,9 @@ app.post('/api/auth/signup', async (req, res) => {
             return res.status(409).json({ error: 'An account with this email already exists.' });
         }
 
-        // Step 2: Create user in Supabase Auth (disabled until OTP verified)
-        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+        // Step 2: Create user in Supabase Auth
+        let authData;
+        const { data: createdAuth, error: authError } = await supabase.auth.admin.createUser({
             email: email.toLowerCase(),
             password,
             email_confirm: false, // Will be confirmed after OTP
@@ -63,11 +64,26 @@ app.post('/api/auth/signup', async (req, res) => {
         });
 
         if (authError) {
+            // Check if user already exists in Supabase Auth but missing from DB
             if (authError.message.includes('already been registered')) {
-                return res.status(409).json({ error: 'An account with this email already exists.' });
+                console.log(`ℹ️ [Signup]: User ${email} already exists in Auth. Checking for missing profile...`);
+                const { data: authList } = await supabase.auth.admin.listUsers();
+                const existingAuthUser = authList?.users?.find(u => u.email === email.toLowerCase());
+                
+                if (existingAuthUser) {
+                    authData = { user: existingAuthUser };
+                } else {
+                    return res.status(409).json({ error: 'An account with this email already exists in Auth but could not be mapped.' });
+                }
+            } else {
+                console.error('[Signup Auth Error]:', authError.message);
+                return res.status(400).json({ error: authError.message });
             }
-            return res.status(400).json({ error: authError.message });
+        } else {
+            authData = createdAuth;
         }
+
+        console.log(`👤 [Signup]: Auth user ready (UID: ${authData.user.id})`);
 
         // Step 3: Insert user profile into public.users
         const { error: dbError } = await supabase
@@ -238,6 +254,7 @@ app.post('/api/auth/login', async (req, res) => {
         });
 
         if (authError) {
+            console.log(`⚠️ [Login Attempt Failed]: ${email} - ${authError.message}`);
             // Supabase returns 'Invalid login credentials' for wrong email/password
             if (authError.message.includes('Invalid login credentials') || authError.status === 400) {
                 return res.json({ success: false, error: 'Invalid email or password.' });
@@ -256,6 +273,7 @@ app.post('/api/auth/login', async (req, res) => {
             .maybeSingle();
 
         if (profileError || !userProfile) {
+            console.error(`❌ [Login Error]: User ${email} authenticated but profile not found in DB.`);
             return res.json({ success: false, error: 'Invalid email or password.' });
         }
 
@@ -283,6 +301,8 @@ app.post('/api/auth/login', async (req, res) => {
                 });
             }
         }
+
+        console.log(`✅ [Login Success]: ${email} (UID: ${userProfile.supabase_uid})`);
 
         // Step 5: Return session + profile
         res.json({
@@ -760,6 +780,11 @@ app.get('/api/admin/stats', async (req, res) => {
 // ═══════════════════════════════════════════════════════════════
 // SERVER START
 // ═══════════════════════════════════════════════════════════════
+
+// Startup Diagnostics
+console.log('🚀 [Server]: Starting Code Vertex Backend...');
+console.log(`🌐 [Environment]: ${process.env.NODE_ENV || 'development'}`);
+console.log(`📡 [Supabase URL]: ${process.env.SUPABASE_URL ? process.env.SUPABASE_URL.replace(/(https:\/\/).*(.supabase.co)/, '$1***$2') : 'NOT CONFIGURED'}`);
 
 const PORT = process.env.PORT || 5000;
 if (process.env.NODE_ENV !== 'production') {

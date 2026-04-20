@@ -38,20 +38,49 @@ async function resetAdminPassword() {
 
     console.log(`✅ Password successfully reset in Supabase Auth.`);
 
-    // 3. Update public.users table (including password_hash for legacy compatibility)
-    const { error: dbError } = await supabase
+    // 3. Update public.users table
+    // Fetch user by email to get their internal DB ID
+    const { data: dbUser, error: findError } = await supabase
         .from('users')
-        .update({ 
-            password_hash: newPassword,
-            status: 'approved',
-            email_verified: true 
-        })
-        .eq('email', email);
+        .select('id')
+        .eq('email', email)
+        .maybeSingle();
 
-    if (dbError) {
-        console.error('⚠️  Warning: Failed to update public.users table:', dbError.message);
+    if (!dbUser) {
+        console.log(`⚠️  Admin not found in public.users. Creating profile...`);
+        const { error: insertError } = await supabase
+            .from('users')
+            .insert({
+                supabase_uid: adminUser.id,
+                email: email,
+                name: 'System Admin',
+                role: 'admin',
+                status: 'approved',
+                email_verified: true,
+                password_hash: 'SUPABASE_AUTH'
+            });
+        
+        if (insertError) {
+            console.error('❌ Failed to create admin profile:', insertError.message);
+        } else {
+            console.log('✅ Admin profile created in public.users.');
+        }
     } else {
-        console.log(`✅ public.users table synchronized.`);
+        const { error: dbError } = await supabase
+            .from('users')
+            .update({ 
+                supabase_uid: adminUser.id,
+                status: 'approved',
+                email_verified: true,
+                password_hash: 'SUPABASE_AUTH' 
+            })
+            .eq('id', dbUser.id);
+
+        if (dbError) {
+            console.error('❌ Failed to update public.users table:', dbError.message);
+        } else {
+            console.log(`✅ public.users table synchronized.`);
+        }
     }
 
     console.log(`\n✨ Done! Admin is ready.`);
