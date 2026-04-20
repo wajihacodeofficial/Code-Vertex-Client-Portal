@@ -76,12 +76,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
             const { data } = await api.get('/api/admin/stats');
             // API now returns { stats, users, projects, invoices, tickets }
-            setAdminStats(data.stats ?? data); // fallback in case old format
+            setAdminStats(data.stats ?? data); 
             if (data.users) setAllUsers(data.users);
             if (data.projects) setProjects(data.projects);
             if (data.invoices) setInvoices(data.invoices);
             if (data.tickets) setTickets(data.tickets);
-        } catch { /* Suppress */ }
+        } catch (err: any) {
+            console.error('Failed to fetch admin stats:', err);
+            const message = err.response?.data?.error || 'Connection to server lost. Please refresh.';
+            toast.error(message, { id: 'admin-fetch-error' });
+        }
     };
 
     const fetchAdminData = async () => {

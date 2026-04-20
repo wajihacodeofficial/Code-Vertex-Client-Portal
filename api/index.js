@@ -93,12 +93,14 @@ app.post('/api/auth/signup', async (req, res) => {
         // Step 4: Generate and send OTP
         await sendOTP(email.toLowerCase());
 
+        console.log(`✅ [Signup Success]: ${email} (Role: ${role})`);
+
         res.status(201).json({
             message: 'Account created. Please check your email for the verification code.',
             email: email.toLowerCase(),
         });
     } catch (err) {
-        console.error('❌  [Signup Error]:', err);
+        console.error('❌ [Signup Error]:', err);
         const errorMessage = err.message || 'Signup failed. Please try again.';
         res.status(500).json({ 
             error: 'Signup failed. Internal Server Error.',
@@ -146,15 +148,27 @@ app.post('/api/auth/verify-otp', async (req, res) => {
         }
 
         // Confirm email in Supabase Auth
-        await supabase.auth.admin.updateUserById(authUser.id, {
+        const { error: updateAuthError } = await supabase.auth.admin.updateUserById(authUser.id, {
             email_confirm: true,
         });
 
+        if (updateAuthError) {
+            console.error('[Verify OTP] Auth Update Error:', updateAuthError.message);
+            return res.status(500).json({ error: 'Failed to update authentication status.' });
+        }
+
         // Update email_verified in public.users
-        await supabase
+        const { error: dbUpdateError } = await supabase
             .from('users')
             .update({ email_verified: true })
             .eq('email', email.toLowerCase());
+
+        if (dbUpdateError) {
+            console.error('[Verify OTP] DB Update Error:', dbUpdateError.message);
+            return res.status(500).json({ error: 'Failed to update user profile status.' });
+        }
+
+        console.log(`✅ [Verification Success]: ${email}`);
 
         res.json({
             message: 'Email verified successfully. Your account is pending admin approval.',
@@ -712,10 +726,15 @@ app.patch('/api/tickets/:id', async (req, res) => {
 
 app.get('/api/admin/stats', async (req, res) => {
     try {
-        const { data: users } = await supabase.from('users').select('*');
-        const { data: projects } = await supabase.from('projects').select('*');
-        const { data: invoices } = await supabase.from('invoices').select('*');
-        const { data: tickets } = await supabase.from('tickets').select('*');
+        const { data: users, error: usersError } = await supabase.from('users').select('*');
+        if (usersError) {
+            console.error('[Admin Stats] Users Fetch Error:', usersError.message);
+            throw usersError;
+        }
+
+        const { data: projects, error: projectsError } = await supabase.from('projects').select('*');
+        const { data: invoices, error: invoicesError } = await supabase.from('invoices').select('*');
+        const { data: tickets, error: ticketsError } = await supabase.from('tickets').select('*');
 
         const stats = {
             totalRevenue: (invoices || []).filter(i => i.status === 'Paid').reduce((sum, i) => sum + Number(i.amount), 0) || 0,
@@ -727,12 +746,13 @@ app.get('/api/admin/stats', async (req, res) => {
 
         res.json({
             stats,
-            users,
-            projects,
-            invoices,
-            tickets
+            users: users || [],
+            projects: projects || [],
+            invoices: invoices || [],
+            tickets: tickets || []
         });
     } catch (err) {
+        console.error('[Admin Stats Error]', err.message);
         res.status(500).json({ error: err.message });
     }
 });
