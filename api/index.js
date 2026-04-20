@@ -240,16 +240,21 @@ app.post('/api/auth/resend-otp', async (req, res) => {
  * email_verified and account status in public.users.
  */
 app.post('/api/auth/login', async (req, res) => {
-    const { email, password, role: requestedRole } = req.body;
+    let { email, password, role: requestedRole } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ error: 'Email and password are required.' });
     }
 
+    // Strict Normalization
+    email = email.trim().toLowerCase();
+
     try {
-        // Step 1: Authenticate with Supabase Auth (real password check)
+        console.log(`🔑 [Login]: Attempting for ${email} (Role: ${requestedRole || 'default'})`);
+        
+        // Step 1: Authenticate with Supabase Auth
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-            email: email.toLowerCase(),
+            email,
             password,
         });
 
@@ -409,14 +414,11 @@ app.post('/api/auth/reset-password', async (req, res) => {
  * Signs out the current user from Supabase Auth.
  */
 app.post('/api/auth/logout', async (req, res) => {
-    const token = req.headers.authorization?.replace('Bearer ', '');
-
-    if (token) {
-        // Sign out using the user's access token
-        await supabase.auth.admin.signOut(token);
-    }
-
-    res.json({ message: 'Logged out successfully.' });
+    // Note: Since we use a stateless service role backend, we don't hold sessions here.
+    // The frontend clears the localStorage token effectively logging the user out.
+    // We confirm this has been called for tracking purposes.
+    console.log('🚪 [Logout]: Session termination requested.');
+    res.json({ success: true, message: 'Logged out successfully.' });
 });
 
 // ═══════════════════════════════════════════════════════════════

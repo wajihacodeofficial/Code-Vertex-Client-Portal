@@ -64,9 +64,9 @@ async function sendOTP(email) {
 
     // Fallback Mode: If credentials are placeholders, just log the OTP to console
     const isPlaceholder = !senderEmail || 
-                          senderEmail.includes('your_email') || 
-                          !senderPassword || 
-                          senderPassword.includes('your_zoho');
+        senderEmail.includes('your_email') || 
+        !senderPassword || 
+        senderPassword.includes('your_zoho');
 
     if (isPlaceholder) {
         console.log('\n================================================');
