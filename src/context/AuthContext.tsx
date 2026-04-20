@@ -64,32 +64,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [tickets, setTickets] = useState<any[]>([]);
     const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
 
-    // ── Fetch all users (for admin panel) ───────────────────────────────────
-    const fetchAllUsers = async () => {
-        try {
-            const { data } = await api.get('/api/users');
-            setAllUsers(data);
-        } catch { /* Suppress */ }
-    };
 
     const fetchProjects = async () => {
         try {
             const { data } = await api.get('/api/projects');
             setProjects(data);
-        } catch { /* Suppress */ }
-    };
-
-    const fetchInvoices = async () => {
-        try {
-            const { data } = await api.get('/api/invoices');
-            setInvoices(data);
-        } catch { /* Suppress */ }
-    };
-
-    const fetchTickets = async () => {
-        try {
-            const { data } = await api.get('/api/tickets');
-            setTickets(data);
         } catch { /* Suppress */ }
     };
 
