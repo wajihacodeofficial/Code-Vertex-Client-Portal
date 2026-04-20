@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, 
   Search, 
@@ -11,16 +11,28 @@ import {
   UserCog, 
   Filter,
   MoreVertical,
-  ArrowUpDown
+  ArrowUpDown,
+  Activity
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import type { UserRole } from '../context/AuthContext';
 
 const AdminUsersPage: React.FC = () => {
-    const { allUsers, approveUser, rejectUser, deleteUser } = useAuth();
+    const { allUsers, approveUser, rejectUser, deleteUser, fetchAdminData } = useAuth();
     const [searchQuery, setSearchQuery] = useState('');
     const [roleFilter, setRoleFilter] = useState<UserRole | 'all'>('all');
     const [statusFilter, setStatusFilter] = useState<'all' | 'pending' | 'approved' | 'rejected'>('all');
+    const [isRefreshing, setIsRefreshing] = useState(false);
+
+    useEffect(() => {
+        fetchAdminData();
+    }, [fetchAdminData]);
+
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        await fetchAdminData();
+        setIsRefreshing(false);
+    };
 
     const filteredUsers = allUsers.filter(u => {
         const matchesSearch = u.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -41,6 +53,14 @@ const AdminUsersPage: React.FC = () => {
                 </div>
                 
                 <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto">
+                    <button 
+                        onClick={handleRefresh}
+                        disabled={isRefreshing}
+                        className={`p-3 bg-white/5 border border-white/10 rounded-xl text-text-muted hover:text-primary transition-all flex items-center gap-2 text-xs font-bold uppercase tracking-widest ${isRefreshing ? 'opacity-50' : ''}`}
+                    >
+                        <Activity size={16} className={isRefreshing ? 'animate-spin' : ''} />
+                        {isRefreshing ? 'Syncing...' : 'Sync Directory'}
+                    </button>
                     <div className="flex items-center bg-white/5 border border-white/10 rounded-xl px-3 grow lg:grow-0 transition-all focus-within:border-primary/50">
                         <Search size={18} className="text-text-muted" />
                         <input 

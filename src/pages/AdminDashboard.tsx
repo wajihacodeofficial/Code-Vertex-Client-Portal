@@ -2,18 +2,42 @@ import React from 'react';
 import { Users, Briefcase, Activity, DollarSign, ArrowUpRight, CheckCircle } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
 
 const AdminDashboard: React.FC = () => {
-  const { allUsers, approveUser, rejectUser, adminStats, tickets } = useAuth();
-  const pendingUsers = (allUsers || []).filter(u => u.status === 'pending' && u.role !== 'admin') || [];
+    const { allUsers, approveUser, rejectUser, adminStats, tickets, fetchAdminData } = useAuth();
+    const [isRefreshing, setIsRefreshing] = React.useState(false);
+  
+    React.useEffect(() => {
+        fetchAdminData();
+    }, [fetchAdminData]);
 
-  return (
-    <div className="space-y-8 pb-20">
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-          <div>
-              <h1 className="text-4xl text-text-primary m-0 heading-gradient pb-1">Overview</h1>
-              <p className="text-text-muted text-sm mt-1">Administrative Control Center</p>
-          </div>
+    const handleRefresh = async () => {
+        setIsRefreshing(true);
+        await fetchAdminData();
+        toast.success('Dashboard data refreshed');
+        setIsRefreshing(false);
+    };
+
+    const pendingUsers = (allUsers || []).filter(u => u.status === 'pending' && u.role !== 'admin') || [];
+
+    return (
+        <div className="space-y-8 pb-20">
+            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                <div>
+                    <div className="flex items-center gap-4">
+                        <h1 className="text-4xl text-text-primary m-0 heading-gradient pb-1">Overview</h1>
+                        <button 
+                            onClick={handleRefresh}
+                            disabled={isRefreshing}
+                            className={`p-2 rounded-xl bg-white/5 border border-white/10 text-text-muted hover:text-primary transition-all ${isRefreshing ? 'animate-spin' : ''}`}
+                            title="Refresh Data"
+                        >
+                            <Activity size={18} />
+                        </button>
+                    </div>
+                    <p className="text-text-muted text-sm mt-1">Administrative Control Center</p>
+                </div>
           <div className="flex items-center gap-3">
               <button className="btn-secondary text-sm">Download Report</button>
               <Link 
