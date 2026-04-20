@@ -56,65 +56,85 @@ app.post('/api/auth/signup', async (req, res) => {
 
         // Step 2: Create user in Supabase Auth
         let authData;
-        const { data: createdAuth, error: authError } = await supabase.auth.admin.createUser({
-            email: email.toLowerCase(),
-            password,
-            email_confirm: false, // Will be confirmed after OTP
-            user_metadata: { name, role },
-        });
+        try {
+            const { data: createdAuth, error: authError } = await supabase.auth.admin.createUser({
+                email,
+                password,
+                email_confirm: false,
+                user_metadata: { name, role },
+            });
 
-        if (authError) {
-            // Check if user already exists in Supabase Auth but missing from DB
-            if (authError.message.includes('already been registered')) {
-                console.log(`ℹ️ [Signup]: User ${email} already exists in Auth. Checking for missing profile...`);
-                const { data: authList } = await supabase.auth.admin.listUsers();
-                const existingAuthUser = authList?.users?.find(u => u.email === email.toLowerCase());
-                
-                if (existingAuthUser) {
-                    authData = { user: existingAuthUser };
+            if (authError) {
+                if (authError.message.includes('already been registered')) {
+                    console.log(`ℹ️ [Signup]: User ${email} already exists in Auth. Checking for missing profile...`);
+                    const { data: authList } = await supabase.auth.admin.listUsers();
+                    const existingAuthUser = authList?.users?.find(u => u.email === email);
+                    
+                    if (existingAuthUser) {
+                        authData = { user: existingAuthUser };
+                    } else {
+                        return res.status(409).json({ error: 'Email already registered in Auth but profile reconciliation failed.' });
+                    }
                 } else {
-                    return res.status(409).json({ error: 'An account with this email already exists in Auth but could not be mapped.' });
+                    console.error('[Signup Auth Error]:', authError.message);
+                    return res.status(400).json({ error: 'Authentication service error: ' + authError.message });
                 }
             } else {
-                console.error('[Signup Auth Error]:', authError.message);
-                return res.status(400).json({ error: authError.message });
+                authData = createdAuth;
             }
-        } else {
-            authData = createdAuth;
+        } catch (authStageErr) {
+            console.error('[Signup Stage: Auth] Fatal:', authStageErr);
+            return res.status(500).json({ error: 'Identity verification service unavailable.' });
         }
 
         console.log(`👤 [Signup]: Auth user ready (UID: ${authData.user.id})`);
 
         // Step 3: Insert user profile into public.users
-        const { error: dbError } = await supabase
-            .from('users')
-            .insert({
-                supabase_uid: authData.user.id,
-                email: email.toLowerCase(),
-                name,
-                role,
-                phone: phone || null,
-                status: 'pending',
-                email_verified: false,
-                password_hash: 'SUPABASE_AUTH', // Placeholder to satisfy legacy DB constraints
-            });
+        try {
+            const { error: dbError } = await supabase
+                .from('users')
+                .insert({
+                    supabase_uid: authData.user.id,
+                    email,
+                    name,
+                    role,
+                    phone: phone || null,
+                    status: 'pending',
+                    email_verified: false,
+                    password_hash: 'SUPABASE_AUTH',
+                });
 
-        if (dbError) {
-            // Rollback: delete the auth user if profile insert fails
-            console.error('[Signup DB Error]:', dbError.message, dbError.details);
-            await supabase.auth.admin.deleteUser(authData.user.id);
-            return res.status(500).json({ error: 'Failed to create user profile: ' + dbError.message });
+            if (dbError) {
+                console.error('[Signup Stage: DB] Error:', dbError.message, dbError.details);
+                // Attempt cleanup of Auth user only if it was newly created (heuristic)
+                // If it existed before, we leave it alone.
+                await supabase.auth.admin.deleteUser(authData.user.id).catch(e => console.error('Cleanup failed:', e));
+                return res.status(500).json({ error: 'Failed to save user profile. ' + (dbError.message || '') });
+            }
+        } catch (dbStageErr) {
+            console.error('[Signup Stage: DB] Fatal:', dbStageErr);
+            return res.status(500).json({ error: 'Profile storage service unavailable.' });
         }
 
         // Step 4: Generate and send OTP
-        await sendOTP(email.toLowerCase());
-
-        console.log(`✅ [Signup Success]: ${email} (Role: ${role})`);
-
-        res.status(201).json({
-            message: 'Account created. Please check your email for the verification code.',
-            email: email.toLowerCase(),
-        });
+        try {
+            await sendOTP(email);
+            console.log(`✅ [Signup Success]: ${email} (Role: ${role})`);
+            res.status(201).json({
+                message: 'Account created. Please check your email for the verification code.',
+                email: email,
+            });
+        } catch (otpStageErr) {
+            console.error('[Signup Stage: OTP] Error:', otpStageErr.message);
+            // We don't rollback DB/Auth here because the account is already semi-created.
+            // Instruct user to use "Resend OTP".
+            return res.status(201).json({ 
+                success: true,
+                message: 'Account created, but verification email failed to send. Please use "Resend Code" to try again.',
+                warning: 'Email service delay',
+                email: email
+            });
+        }
     } catch (err) {
         console.error('❌ [Signup Error]:', err);
         const errorMessage = err.message || 'Signup failed. Please try again.';
