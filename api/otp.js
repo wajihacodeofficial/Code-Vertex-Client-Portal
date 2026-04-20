@@ -30,21 +30,24 @@ function generateOTP() {
  * @returns {Promise<void>}
  */
 async function sendOTP(email) {
+    const normalizedEmail = email.trim().toLowerCase();
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
+
+    console.log(`\n📧  Generating OTP for: ${normalizedEmail}`);
 
     // Invalidate any previous OTPs for this email
     await supabase
         .from('otp_verifications')
         .update({ used: true })
-        .eq('email', email.toLowerCase())
+        .eq('email', normalizedEmail)
         .eq('used', false);
 
     // Insert fresh OTP
     const { error: insertError } = await supabase
         .from('otp_verifications')
         .insert({
-            email: email.toLowerCase(),
+            email: normalizedEmail,
             otp_code: otp,
             expires_at: expiresAt.toISOString(),
             used: false,
@@ -67,7 +70,7 @@ async function sendOTP(email) {
 
     if (isPlaceholder) {
         console.log('\n================================================');
-        console.log(`📧  [SMTP FALLBACK] Verification Code for ${email}:`);
+        console.log(`📧  [SMTP FALLBACK] Verification Code for ${normalizedEmail}:`);
         console.log(`👉  CODE: ${otp}`);
         console.log('================================================\n');
         return;
@@ -76,7 +79,7 @@ async function sendOTP(email) {
     try {
         await transporter.sendMail({
             from: `"${senderName}" <${senderEmail}>`,
-            to: email,
+            to: normalizedEmail,
             subject: 'Your Code Vertex Verification Code',
             html: `
                 <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #0f0f0f; border-radius: 16px; overflow: hidden; border: 1px solid #1f1f1f;">
@@ -90,7 +93,7 @@ async function sendOTP(email) {
                             This code expires in <strong style="color: #22c55e;">5 minutes</strong>.
                         </p>
                         <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 28px; margin: 0 auto 28px; display: inline-block; min-width: 200px;">
-                            <span style="font-size: 42px; font-weight: 900; letter-spacing: 12px; color: #22c55e; font-family: 'Courier New', monospace;">${otp}</span>
+                            <span style="font-size: 42px; font-weight: 900; letter-spacing: 12px; color: #22c55e; font-family: 'Courier New', monospace;">\${otp}</span>
                         </div>
                         <p style="color: #666; font-size: 12px; margin: 0; line-height: 1.6;">
                             If you didn't request this, please ignore this email.<br/>
@@ -116,21 +119,28 @@ async function sendOTP(email) {
  * @returns {Promise<{ valid: boolean, error?: string }>}
  */
 async function verifyOTP(email, otpCode) {
+    const normalizedEmail = email.trim().toLowerCase();
+    const normalizedOtp = otpCode.trim();
+
+    console.log(`\n🔍 Verifying OTP for: ${normalizedEmail}`);
+
     const { data: records, error } = await supabase
         .from('otp_verifications')
         .select('*')
-        .eq('email', email.toLowerCase())
-        .eq('otp_code', otpCode.trim())
+        .eq('email', normalizedEmail)
+        .eq('otp_code', normalizedOtp)
         .eq('used', false)
         .order('created_at', { ascending: false })
         .limit(1);
 
     if (error) {
+        console.error('❌ DB error during OTP check:', error.message);
         return { valid: false, error: 'Database error during OTP check' };
     }
 
     if (!records || records.length === 0) {
-        return { valid: false, error: 'Invalid or expired OTP' };
+        console.warn(`⚠️  No valid OTP found for ${normalizedEmail} with code ${normalizedOtp}`);
+        return { valid: false, error: 'Invalid verification code. Please check and try again.' };
     }
 
     const record = records[0];
@@ -155,6 +165,7 @@ async function verifyOTP(email, otpCode) {
  * @returns {Promise<void>}
  */
 async function sendPasswordResetLink(email) {
+    const normalizedEmail = email.trim().toLowerCase();
     const otpCode = generateOTP(); // We use the same 6-digit OTP generator for the token
     const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes max
     
@@ -162,14 +173,14 @@ async function sendPasswordResetLink(email) {
     await supabase
         .from('otp_verifications')
         .update({ used: true })
-        .eq('email', email.toLowerCase())
+        .eq('email', normalizedEmail)
         .eq('used', false);
         
     // Insert new
     const { error: insertError } = await supabase
         .from('otp_verifications')
         .insert({
-            email: email.toLowerCase(),
+            email: normalizedEmail,
             otp_code: otpCode,
             expires_at: expiresAt.toISOString(),
             used: false,
@@ -180,20 +191,20 @@ async function sendPasswordResetLink(email) {
     }
     
     const frontendUrl = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://portal.codevertex.solutions' : 'http://localhost:5173');
-    const resetLink = `${frontendUrl}/reset-password?token=${otpCode}&email=${encodeURIComponent(email.toLowerCase())}`;
+    const resetLink = `${frontendUrl}/reset-password?token=${otpCode}&email=${encodeURIComponent(normalizedEmail)}`;
     
     const senderName = process.env.MAIL_FROM || process.env.ZOHO_FROM_NAME || 'Code Vertex';
     const senderEmail = process.env.SMTP_USER || process.env.ZOHO_EMAIL;
     const senderPassword = process.env.SMTP_PASS || process.env.ZOHO_PASSWORD;
 
     const isPlaceholder = !senderEmail || 
-                          senderEmail.includes('your_email') || 
-                          !senderPassword || 
-                          senderPassword.includes('your_zoho');
+    senderEmail.includes('your_email') || 
+    !senderPassword || 
+    senderPassword.includes('your_zoho');
 
     if (isPlaceholder) {
         console.log('\n================================================');
-        console.log(`📧  [SMTP FALLBACK] Password Reset Link for ${email}:`);
+        console.log(`📧  [SMTP FALLBACK] Password Reset Link for ${normalizedEmail}:`);
         console.log(`👉  LINK: ${resetLink}`);
         console.log('================================================\n');
         return;
@@ -202,7 +213,7 @@ async function sendPasswordResetLink(email) {
     try {
         await transporter.sendMail({
             from: `"${senderName}" <${senderEmail}>`,
-            to: email,
+            to: normalizedEmail,
             subject: 'Password Reset - Code Vertex',
             html: `
                 <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #0f0f0f; border-radius: 16px; overflow: hidden; border: 1px solid #1f1f1f;">

@@ -72,7 +72,9 @@ const VerificationPage: React.FC = () => {
 
         setIsVerifying(true);
         try {
-            const { data } = await api.post('/api/auth/verify-otp', { email, otp: code });
+            // Trim inputs to avoid whitespace errors
+            const normalizedEmail = email.trim().toLowerCase();
+            const { data } = await api.post('/api/auth/verify-otp', { email: normalizedEmail, otp: code });
             toast.success(data.message || 'Email verified successfully!');
             // Send them to awaiting approval since by default status is pending
             navigate('/awaiting-approval');
@@ -87,7 +89,8 @@ const VerificationPage: React.FC = () => {
         if (isResending) return;
         setIsResending(true);
         try {
-            const { data } = await api.post('/api/auth/resend-otp', { email });
+            const normalizedEmail = email.trim().toLowerCase();
+            const { data } = await api.post('/api/auth/resend-otp', { email: normalizedEmail });
             toast.success(data.message || 'A new code has been sent.');
             setOtp(['', '', '', '', '', '']); // Clear inputs
             inputRefs.current[0]?.focus();

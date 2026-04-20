@@ -23,12 +23,16 @@ app.use(express.json());
  * then sends a 6-digit OTP to their email for verification.
  */
 app.post('/api/auth/signup', async (req, res) => {
-    const { name, email, password, role, phone } = req.body;
+    let { name, email, password, role, phone } = req.body;
 
     // Validate required fields
     if (!name || !email || !password || !role) {
         return res.status(400).json({ error: 'Name, email, password, and role are required.' });
     }
+
+    // Normalization
+    name = name.trim();
+    email = email.trim().toLowerCase();
 
     if (!['client', 'team'].includes(role)) {
         return res.status(400).json({ error: 'Invalid role. Must be client or team.' });
@@ -108,11 +112,15 @@ app.post('/api/auth/signup', async (req, res) => {
  * Validates the 6-digit OTP and marks the user email as verified.
  */
 app.post('/api/auth/verify-otp', async (req, res) => {
-    const { email, otp } = req.body;
+    let { email, otp } = req.body;
 
     if (!email || !otp) {
         return res.status(400).json({ error: 'Email and OTP are required.' });
     }
+
+    // Normalization
+    email = email.trim().toLowerCase();
+    otp = otp.trim();
 
     if (!/^\d{6}$/.test(otp)) {
         return res.status(400).json({ error: 'OTP must be a 6-digit number.' });
@@ -162,11 +170,14 @@ app.post('/api/auth/verify-otp', async (req, res) => {
  * Resends a new OTP to the given email (invalidates previous OTPs).
  */
 app.post('/api/auth/resend-otp', async (req, res) => {
-    const { email } = req.body;
+    let { email } = req.body;
 
     if (!email) {
         return res.status(400).json({ error: 'Email is required.' });
     }
+
+    // Normalization
+    email = email.trim().toLowerCase();
 
     try {
         // Make sure the user exists
