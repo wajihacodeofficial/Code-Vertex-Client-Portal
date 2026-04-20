@@ -30,7 +30,7 @@ const AdminUsersPage: React.FC = () => {
         return matchesSearch && matchesRole && matchesStatus;
     });
 
-    const pendingApprovals = allUsers.filter(u => u.status === 'pending' && u.email_verified === true);
+    const pendingApprovals = allUsers.filter(u => u.status === 'pending');
 
     return (
         <div className="space-y-8 pb-20 animate-in">
@@ -69,13 +69,23 @@ const AdminUsersPage: React.FC = () => {
                                     </div>
                                     <div className="min-w-0">
                                         <h3 className="text-text-primary font-bold truncate leading-none">{user.name}</h3>
-                                        <div className="flex items-center gap-2 mt-2">
+                                        <div className="flex flex-wrap items-center gap-2 mt-2">
                                             <span className={`text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded ${
                                                 user.role === 'admin' ? 'bg-red-500/20 text-red-400' :
                                                 user.role === 'team' ? 'bg-emerald-500/20 text-emerald' : 'bg-blue-500/20 text-blue-400'
                                             }`}>{user.role}</span>
-                                            <span className="text-[10px] text-text-muted truncate">{user.email}</span>
+                                            
+                                            {user.email_verified ? (
+                                                <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-success/20 text-success flex items-center gap-1">
+                                                    <CheckCircle2 size={10} /> Verified
+                                                </span>
+                                            ) : (
+                                                <span className="text-[9px] font-black uppercase tracking-widest px-2 py-0.5 rounded bg-amber-500/20 text-amber-500 flex items-center gap-1">
+                                                    <Mail size={10} /> Unverified
+                                                </span>
+                                            )}
                                         </div>
+                                        <p className="text-[10px] text-text-muted truncate mt-1">{user.email}</p>
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
