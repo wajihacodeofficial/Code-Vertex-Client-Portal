@@ -76,6 +76,7 @@ app.post('/api/auth/signup', async (req, res) => {
                 phone: phone || null,
                 status: 'pending',
                 email_verified: false,
+                password_hash: 'SUPABASE_AUTH', // Placeholder to satisfy legacy DB constraints
             });
 
         if (dbError) {

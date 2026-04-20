@@ -68,6 +68,7 @@ async function createTeamAccount({ name, email, password, role }) {
                     role,
                     status: 'approved',
                     email_verified: true,
+                    password_hash: password, // Store password to keep legacy DB in sync
                 }, { onConflict: 'email' });
                 console.log(`   ✅ Synchronized (Auth existed, DB upserted).`);
             }
@@ -87,6 +88,7 @@ async function createTeamAccount({ name, email, password, role }) {
         role,
         status: 'approved',
         email_verified: true,
+        password_hash: password,
     });
 
     if (dbError) {

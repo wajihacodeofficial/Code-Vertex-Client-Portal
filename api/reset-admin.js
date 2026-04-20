@@ -22,12 +22,11 @@ async function resetAdminPassword() {
 
     if (!adminUser) {
         console.log(`❌ Admin user ${email} not found in Supabase Auth.`);
-        console.log(`💡 Try creating it first using a signup or custom script.`);
         return;
     }
 
     // 2. Update password in Supabase Auth
-    const { data: updated, error: updateError } = await supabase.auth.admin.updateUserById(
+    const { error: updateError } = await supabase.auth.admin.updateUserById(
         adminUser.id,
         { password: newPassword, email_confirm: true }
     );
@@ -39,25 +38,23 @@ async function resetAdminPassword() {
 
     console.log(`✅ Password successfully reset in Supabase Auth.`);
 
-    // 3. Ensure the public.users table is also updated (though login only checks Auth)
+    // 3. Update public.users table (including password_hash for legacy compatibility)
     const { error: dbError } = await supabase
         .from('users')
         .update({ 
-            password_hash: newPassword, // Note: The app uses Auth, but we keep this for consistency if needed
+            password_hash: newPassword,
             status: 'approved',
             email_verified: true 
         })
         .eq('email', email);
 
     if (dbError) {
-        console.error('⚠️  Warning: Failed to update public.users table (not critical):', dbError.message);
+        console.error('⚠️  Warning: Failed to update public.users table:', dbError.message);
     } else {
-        console.log(`✅ public.users table synchronized to 'approved'.`);
+        console.log(`✅ public.users table synchronized.`);
     }
 
-    console.log(`\n✨ Done! You can now login with:`);
-    console.log(`📧 Email: ${email}`);
-    console.log(`🔑 Password: ${newPassword}\n`);
+    console.log(`\n✨ Done! Admin is ready.`);
 }
 
 resetAdminPassword();
