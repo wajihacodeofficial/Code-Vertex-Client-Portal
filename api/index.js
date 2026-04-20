@@ -272,6 +272,9 @@ app.post('/api/auth/login', async (req, res) => {
     try {
         console.log(`🔑 [Login]: Attempting for ${email} (Role: ${requestedRole || 'default'})`);
         
+        // Ensure any previous session on this client instance is cleared before a new attempt
+        await supabase.auth.signOut().catch(() => {});
+
         // Step 1: Authenticate with Supabase Auth
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
             email,
@@ -355,10 +358,13 @@ app.post('/api/auth/login', async (req, res) => {
  * Generates a password reset link and sends it via email.
  */
 app.post('/api/auth/forgot-password', async (req, res) => {
-    const { email } = req.body;
+    let { email } = req.body;
     if (!email) {
         return res.status(400).json({ error: 'Email is required.' });
     }
+
+    // Normalization
+    email = email.trim().toLowerCase();
 
     try {
         const { data: user } = await supabase
@@ -385,11 +391,15 @@ app.post('/api/auth/forgot-password', async (req, res) => {
  * Verifies the token and updates the user's password.
  */
 app.post('/api/auth/reset-password', async (req, res) => {
-    const { email, token, newPassword } = req.body;
+    let { email, token, newPassword } = req.body;
 
     if (!email || !token || !newPassword) {
         return res.status(400).json({ error: 'Email, token, and new password are required.' });
     }
+    
+    // Normalization
+    email = email.trim().toLowerCase();
+    token = token.trim();
 
     if (newPassword.length < 8) {
         return res.status(400).json({ error: 'Password must be at least 8 characters.' });
@@ -434,10 +444,14 @@ app.post('/api/auth/reset-password', async (req, res) => {
  * Signs out the current user from Supabase Auth.
  */
 app.post('/api/auth/logout', async (req, res) => {
-    // Note: Since we use a stateless service role backend, we don't hold sessions here.
-    // The frontend clears the localStorage token effectively logging the user out.
-    // We confirm this has been called for tracking purposes.
-    console.log('🚪 [Logout]: Session termination requested.');
+    try {
+        // Explicitly clear the session from the backend client instance
+        await supabase.auth.signOut();
+        console.log('🚪 [Logout]: Backend session explicitly terminated.');
+    } catch (err) {
+        console.warn('🚪 [Logout]: Background signout warning (likely already stateless):', err.message);
+    }
+    
     res.json({ success: true, message: 'Logged out successfully.' });
 });
 
