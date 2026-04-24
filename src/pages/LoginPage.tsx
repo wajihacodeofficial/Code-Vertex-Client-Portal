@@ -95,7 +95,7 @@ const LoginPage: React.FC = () => {
 
           {!isForgotPassword && (
             <div className="flex bg-white/5 p-1 rounded-xl mb-8 border border-white/5">
-              {(['client', 'team'] as const).map((type) => (
+              {(['client', 'team', 'admin'] as const).map((type) => (
                 <button
                   key={type}
                   onClick={() => setPortalType(type)}
