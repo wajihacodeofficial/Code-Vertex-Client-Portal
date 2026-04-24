@@ -27,20 +27,26 @@ app.use(express.json());
 // Attach io to app for use in routes
 app.set('io', io);
 
+// ─── HEALTH CHECK ─────────────────────────────────────────────
+app.get('/api/health', (req, res) => {
+    res.json({ 
+        status: 'ok', 
+        timestamp: new Date().toISOString(),
+        env: process.env.NODE_ENV || 'development'
+    });
+});
+
 // ─── ROUTES ───────────────────────────────────────────────────
 const registrationRequestsRouter = require('./routes/registrationRequests');
 app.use('/api/registration-requests', registrationRequestsRouter);
+
+const authRouter = express.Router();
 
 // ═══════════════════════════════════════════════════════════════
 // AUTH ROUTES
 // ═══════════════════════════════════════════════════════════════
 
-/**
- * POST /api/auth/signup
- * Creates a new user in Supabase Auth + public.users profile table,
- * then sends a 6-digit OTP to their email for verification.
- */
-app.post('/api/auth/signup', async (req, res) => {
+authRouter.post('/signup', async (req, res) => {
     let { name, email, password, role, phone } = req.body;
 
     // Validate required fields
@@ -163,11 +169,11 @@ app.post('/api/auth/signup', async (req, res) => {
     }
 });
 
-/**
- * POST /api/auth/verify-otp
- * Validates the 6-digit OTP and marks the user email as verified.
- */
-app.post('/api/auth/verify-otp', async (req, res) => {
+authRouter.get('/verify-otp', (req, res) => {
+    res.json({ message: 'Auth verify-otp route is active. Use POST to verify your code.' });
+});
+
+authRouter.post('/verify-otp', async (req, res) => {
     let { email, otp } = req.body;
 
     if (!email || !otp) {
@@ -233,11 +239,7 @@ app.post('/api/auth/verify-otp', async (req, res) => {
     }
 });
 
-/**
- * POST /api/auth/resend-otp
- * Resends a new OTP to the given email (invalidates previous OTPs).
- */
-app.post('/api/auth/resend-otp', async (req, res) => {
+authRouter.post('/resend-otp', async (req, res) => {
     let { email } = req.body;
 
     if (!email) {
@@ -272,12 +274,7 @@ app.post('/api/auth/resend-otp', async (req, res) => {
     }
 });
 
-/**
- * POST /api/auth/login
- * Validates email + password against Supabase Auth, then checks
- * email_verified and account status in public.users.
- */
-app.post('/api/auth/login', async (req, res) => {
+authRouter.post('/login', async (req, res) => {
     let { email, password, role: requestedRole } = req.body;
 
     if (!email || !password) {
@@ -371,11 +368,7 @@ app.post('/api/auth/login', async (req, res) => {
     }
 });
 
-/**
- * POST /api/auth/forgot-password
- * Generates a password reset link and sends it via email.
- */
-app.post('/api/auth/forgot-password', async (req, res) => {
+authRouter.post('/forgot-password', async (req, res) => {
     let { email } = req.body;
     if (!email) {
         return res.status(400).json({ error: 'Email is required.' });
@@ -404,11 +397,7 @@ app.post('/api/auth/forgot-password', async (req, res) => {
     }
 });
 
-/**
- * POST /api/auth/reset-password
- * Verifies the token and updates the user's password.
- */
-app.post('/api/auth/reset-password', async (req, res) => {
+authRouter.post('/reset-password', async (req, res) => {
     let { email, token, newPassword } = req.body;
 
     if (!email || !token || !newPassword) {
@@ -457,11 +446,7 @@ app.post('/api/auth/reset-password', async (req, res) => {
     }
 });
 
-/**
- * POST /api/auth/logout
- * Signs out the current user from Supabase Auth.
- */
-app.post('/api/auth/logout', async (req, res) => {
+authRouter.post('/logout', async (req, res) => {
     try {
         // Explicitly clear the session from the backend client instance
         await supabase.auth.signOut();
@@ -472,6 +457,8 @@ app.post('/api/auth/logout', async (req, res) => {
     
     res.json({ success: true, message: 'Logged out successfully.' });
 });
+
+app.use('/api/auth', authRouter);
 
 // ═══════════════════════════════════════════════════════════════
 // USERS ROUTES
