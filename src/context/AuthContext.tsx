@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
-import api from '../lib/api';
+import api, { API_URL } from '../lib/api';
 
 // ─── Types ─────────────────────────────────────────────────────────────────
 export type UserRole = 'client' | 'team' | 'admin';
@@ -338,7 +338,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     useEffect(() => {
         const isAuthenticated = !!user;
         if (isAuthenticated && user?.role === 'admin') {
-            const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000');
+            const socket = io(API_URL || window.location.origin);
             
             socket.on('registration_update', ({ userId, status }: { userId: string, status: string }) => {
                 setAllUsers(prev => prev.map(u => 

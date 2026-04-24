@@ -12,7 +12,7 @@ import {
   Phone
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
-import api from '../../lib/api';
+import api, { API_URL } from '../../lib/api';
 import type { RegistrationRequest } from '../../context/AuthContext';
 import { io } from 'socket.io-client';
 
@@ -41,7 +41,7 @@ const RegistrationRequests = () => {
         fetchRequests();
 
         // Socket.io for real-time updates
-        const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000');
+        const socket = io(API_URL || window.location.origin);
         
         socket.on('new_registration_request', (newRequest: RegistrationRequest) => {
             setRequests(prev => [newRequest, ...prev]);

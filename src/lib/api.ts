@@ -1,15 +1,15 @@
 import axios from 'axios';
 
 // If VITE_API_URL is provided, use it. Otherwise, in Production use the same domain (relative), in Dev use localhost:5000.
-let RAW_API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:5000');
+export let API_URL = import.meta.env.VITE_API_URL || (import.meta.env.PROD ? '' : 'http://localhost:5000');
 
 // Automatically strip trailing /api if the user mistakenly added it
-if (RAW_API_URL && RAW_API_URL.endsWith('/api')) {
-    RAW_API_URL = RAW_API_URL.slice(0, -4);
+if (API_URL && API_URL.endsWith('/api')) {
+    API_URL = API_URL.slice(0, -4);
 }
 
 const api = axios.create({
-    baseURL: RAW_API_URL,
+    baseURL: API_URL,
     headers: {
         'Content-Type': 'application/json',
     },
