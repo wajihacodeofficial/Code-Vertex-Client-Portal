@@ -5,7 +5,6 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import logo from '../assets/logo.jpeg';
 import { supabase } from '../lib/supabase'; // Assuming this exists
-import api from '../lib/api';
 import { countryCodes } from '../data/countries';
 import { Footer } from '../components/Footer';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -80,16 +79,21 @@ const SignUpPage: React.FC = () => {
                 }
             }
 
-            // Create Registration Request
-            await api.post('/api/registration-requests/submit', {
+            // Store registration data to be submitted AFTER email verification
+            const registrationData = {
                 userId,
                 role: portalType,
                 documentUrl
-            });
+            };
 
             setIsLoading(false);
-            // Redirect to OTP verification page, passing email in state
-            navigate('/verify-email', { state: { email } });
+            // Redirect to OTP verification page, passing email AND registration data in state
+            navigate('/verify-email', { 
+                state: { 
+                    email,
+                    registrationData
+                } 
+            });
         } catch (err: unknown) {
             const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
             toast.error(message || 'Registration failed. Please try again.');

@@ -75,6 +75,19 @@ const VerificationPage: React.FC = () => {
             // Trim inputs to avoid whitespace errors
             const normalizedEmail = email.trim().toLowerCase();
             const { data } = await api.post('/api/auth/verify-otp', { email: normalizedEmail, otp: code });
+            
+            // IF registration data was passed (meaning this is a new signup flow)
+            // Submit the registration request now that the email is verified
+            const registrationData = location.state?.registrationData;
+            if (registrationData) {
+                try {
+                    await api.post('/api/registration-requests/submit', registrationData);
+                } catch (regErr) {
+                    console.error('Registration request submission failed:', regErr);
+                    toast.error('Email verified, but registration request failed. Please contact admin.');
+                }
+            }
+
             toast.success(data.message || 'Email verified successfully!');
             // Send them to awaiting approval since by default status is pending
             navigate('/awaiting-approval');
