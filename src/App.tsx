@@ -31,6 +31,7 @@ import AdminInvoices from './pages/AdminInvoices';
 import PoliciesPage from './pages/PoliciesPage';
 import MeetingsPage from './pages/MeetingsPage';
 import SettingsPage from './pages/SettingsPage';
+import RegistrationRequests from './pages/admin/RegistrationRequests';
 import AdminClients from './pages/AdminClients';
 import AdminUsersPage from './pages/AdminUsersPage';
 import AdminInternalTeam from './pages/AdminInternalTeam';
@@ -122,6 +123,7 @@ const AppRoutes = () => {
                     <Routes>
                         <Route path="dashboard" element={<AdminDashboard />} />
                         <Route path="users" element={<AdminUsersPage />} />
+                        <Route path="registrations" element={<RegistrationRequests />} />
                         <Route path="clients" element={<AdminClients />} />
                         <Route path="team" element={<AdminInternalTeam />} />
                         <Route path="projects" element={<ProjectsList />} />

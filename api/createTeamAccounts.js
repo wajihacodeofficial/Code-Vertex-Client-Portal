@@ -88,7 +88,7 @@ async function createTeamAccount({ name, email, password, role }) {
         role,
         status: 'approved',
         email_verified: true,
-        password_hash: password,
+        password_hash: 'SUPABASE_AUTH',
     });
 
     if (dbError) {

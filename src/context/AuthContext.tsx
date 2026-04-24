@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { io } from 'socket.io-client';
 import toast from 'react-hot-toast';
 import api from '../lib/api';
 
@@ -18,6 +19,21 @@ export interface User {
     email_verified?: boolean;
 }
 
+export interface RegistrationRequest {
+    id: string;
+    user_id: string;
+    role: string;
+    document_url?: string;
+    status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    rejection_reason?: string;
+    created_at: string;
+    users?: {
+        name: string;
+        email: string;
+        phone?: string;
+    };
+}
+
 export interface AdminStats {
     totalRevenue: number;
     activeProjects: number;
@@ -31,7 +47,7 @@ interface AuthContextType {
     isAuthenticated: boolean;
     isLoading: boolean;
     login: (email: string, password: string, role: UserRole) => Promise<UserRole>;
-    signup: (name: string, email: string, password: string, role?: UserRole, phone?: string) => Promise<void>;
+    signup: (name: string, email: string, password: string, role?: UserRole, phone?: string) => Promise<any>;
     logout: () => Promise<void>;
     allUsers: User[];
     approveUser: (id: string) => Promise<void>;
@@ -65,14 +81,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
 
 
-    const fetchProjects = async () => {
+    const fetchProjects = useCallback(async () => {
         try {
             const { data } = await api.get('/api/projects');
             setProjects(data);
         } catch { /* Suppress */ }
-    };
+    }, []);
 
-    const fetchAdminStats = async () => {
+    const fetchAdminStats = useCallback(async () => {
         try {
             const { data } = await api.get('/api/admin/stats');
             // API now returns { stats, users, projects, invoices, tickets }
@@ -86,12 +102,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const message = err.response?.data?.error || 'Connection to server lost. Please refresh.';
             toast.error(message, { id: 'admin-fetch-error' });
         }
-    };
+    }, []);
 
-    const fetchAdminData = async () => {
+    const fetchAdminData = useCallback(async () => {
         // Single efficient call - fetchAdminStats now populates everything
         await fetchAdminStats();
-    };
+    }, [fetchAdminStats]);
 
     // ── Restore session on mount ──
     useEffect(() => {
@@ -136,7 +152,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         };
         
         initialize();
-    }, []);
+    }, [fetchAdminData, fetchProjects]);
 
     // ── Login ────────────────────────────────────────────────────────────────
     const login = async (email: string, password: string, role: UserRole): Promise<UserRole> => {
@@ -174,11 +190,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         password: string,
         role: UserRole = 'client',
         phone?: string
-    ): Promise<void> => {
-        await api.post('/api/auth/signup', { name, email, password, role, phone });
+    ): Promise<any> => {
+        const { data } = await api.post('/api/auth/signup', { name, email, password, role, phone });
         toast.success('Account created! Please check your email for the verification code.', {
             duration: 6000,
         });
+        return data;
     };
 
     // ── Logout ───────────────────────────────────────────────────────────────
@@ -317,6 +334,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             throw err;
         }
     };
+
+    useEffect(() => {
+        const isAuthenticated = !!user;
+        if (isAuthenticated && user?.role === 'admin') {
+            const socket = io(import.meta.env.VITE_API_URL || 'http://localhost:5000');
+            
+            socket.on('registration_update', ({ userId, status }: { userId: string, status: string }) => {
+                setAllUsers(prev => prev.map(u => 
+                    u.id === userId ? { ...u, status: status.toLowerCase() as "pending" | "approved" | "rejected" } : u
+                ));
+            });
+
+            socket.on('new_registration_request', () => {
+                fetchAdminData(); // Refresh everything on new request
+            });
+
+            return () => {
+                socket.disconnect();
+            };
+        }
+    }, [user, fetchAdminData]);
 
     return (
         <AuthContext.Provider value={{

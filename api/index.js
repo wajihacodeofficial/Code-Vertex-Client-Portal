@@ -6,12 +6,30 @@ const supabase = require('./db');
 const { sendOTP, verifyOTP, sendPasswordResetLink } = require('./otp');
 
 const app = express();
+const http = require('http');
+const { Server } = require('socket.io');
+
+const server = http.createServer(app);
+const io = new Server(server, {
+    cors: {
+        origin: ['http://localhost:5173', 'http://localhost:3000'],
+        methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+        credentials: true
+    }
+});
 
 app.use(cors({
     origin: ['http://localhost:5173', 'http://localhost:3000'],
     credentials: true,
 }));
 app.use(express.json());
+
+// Attach io to app for use in routes
+app.set('io', io);
+
+// ─── ROUTES ───────────────────────────────────────────────────
+const registrationRequestsRouter = require('./routes/registrationRequests');
+app.use('/api/registration-requests', registrationRequestsRouter);
 
 // ═══════════════════════════════════════════════════════════════
 // AUTH ROUTES
@@ -824,12 +842,14 @@ console.log(`📡 [Supabase URL]: ${process.env.SUPABASE_URL ? process.env.SUPAB
 
 const PORT = process.env.PORT || 5000;
 if (process.env.NODE_ENV !== 'production') {
-    app.listen(PORT, () => {
+    server.listen(PORT, () => {
         console.log(`\n✅ Code Vertex Platform Server running on port ${PORT}`);
         console.log(`   Auth: Supabase Auth + OTP (Zoho SMTP)`);
+        console.log(`   Socket: Active and listening`);
         console.log(`   Endpoints: /api/auth/{signup,login,verify-otp,resend-otp,logout}\n`);
     });
 }
 
 // Export the Express API for Vercel serverless integration
-module.exports = app;
+// Export the Server for non-serverless environments and App for Vercel
+module.exports = process.env.NODE_ENV === 'production' ? app : server;

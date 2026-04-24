@@ -133,6 +133,13 @@ const AdminLayout = ({ children }: { children: React.ReactNode }) => {
             label="Dashboard"
             collapsed={collapsed}
           />
+          <SidebarItem
+            to="/admin/registrations"
+            icon={UserCheck}
+            label="Registration Queue"
+            collapsed={collapsed}
+            badge={pendingClientsCount > 0 ? pendingClientsCount : undefined}
+          />
 
           <div className="pt-6 pb-2">
             {!collapsed && (

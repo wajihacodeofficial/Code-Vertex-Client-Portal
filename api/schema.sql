@@ -112,7 +112,7 @@ CREATE TABLE tickets (
 
 -- Default Super Admin (password: AdminCodey@110 hashed if needed, storing plaintext for dev mock here)
 INSERT INTO users (email, password_hash, name, role, status) 
-VALUES ('admin@codevertex.solutions', 'AdminCodey@110', 'System Admin', 'admin', 'approved')
+VALUES ('admin@codevertex.solutions', 'SUPABASE_AUTH', 'System Admin', 'admin', 'approved')
 ON CONFLICT (email) DO NOTHING;
 
 INSERT INTO users (email, password_hash, name, role, status) 
