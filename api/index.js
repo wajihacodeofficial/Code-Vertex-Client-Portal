@@ -114,8 +114,9 @@ authRouter.post('/signup', async (req, res) => {
         console.log(`👤 [Signup]: Auth user ready (UID: ${authData.user.id})`);
 
         // Step 3: Insert user profile into public.users
+        let newUser;
         try {
-            const { error: dbError } = await supabase
+            const { data, error: dbError } = await supabase
                 .from('users')
                 .insert({
                     supabase_uid: authData.user.id,
@@ -126,15 +127,16 @@ authRouter.post('/signup', async (req, res) => {
                     status: 'pending',
                     email_verified: false,
                     password_hash: 'SUPABASE_AUTH',
-                });
+                })
+                .select('id')
+                .maybeSingle();
 
             if (dbError) {
                 console.error('[Signup Stage: DB] Error:', dbError.message, dbError.details);
-                // Attempt cleanup of Auth user only if it was newly created (heuristic)
-                // If it existed before, we leave it alone.
                 await supabase.auth.admin.deleteUser(authData.user.id).catch(e => console.error('Cleanup failed:', e));
                 return res.status(500).json({ error: 'Failed to save user profile. ' + (dbError.message || '') });
             }
+            newUser = data;
         } catch (dbStageErr) {
             console.error('[Signup Stage: DB] Fatal:', dbStageErr);
             return res.status(500).json({ error: 'Profile storage service unavailable.' });
@@ -147,16 +149,16 @@ authRouter.post('/signup', async (req, res) => {
             res.status(201).json({
                 message: 'Account created. Please check your email for the verification code.',
                 email: email,
+                id: newUser?.id
             });
         } catch (otpStageErr) {
             console.error('[Signup Stage: OTP] Error:', otpStageErr.message);
-            // We don't rollback DB/Auth here because the account is already semi-created.
-            // Instruct user to use "Resend OTP".
             return res.status(201).json({ 
                 success: true,
                 message: 'Account created, but verification email failed to send. Please use "Resend Code" to try again.',
                 warning: 'Email service delay',
-                email: email
+                email: email,
+                id: newUser?.id
             });
         }
     } catch (err) {
