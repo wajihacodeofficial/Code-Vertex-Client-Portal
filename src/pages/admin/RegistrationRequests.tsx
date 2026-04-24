@@ -1,7 +1,6 @@
 import { useState, useEffect } from 'react';
 import { 
   Check, 
-  Eye, 
   FileText, 
   Clock, 
   AlertCircle,
@@ -193,29 +192,6 @@ const RegistrationRequests = () => {
                                         </div>
                                     </div>
 
-                                    <div className="p-4 bg-white/5 rounded-xl border border-white/5">
-                                        <label className="text-[10px] text-text-muted font-black uppercase tracking-widest block mb-3">Identity Document</label>
-                                        {selectedRequest.document_url ? (
-                                            <a 
-                                                href={selectedRequest.document_url} 
-                                                target="_blank" 
-                                                rel="noopener noreferrer"
-                                                className="flex items-center justify-between p-3 bg-surface rounded-lg border border-white/10 hover:border-primary/50 transition-all group"
-                                            >
-                                                <div className="flex items-center gap-3">
-                                                    <div className="p-2 bg-primary/10 text-primary rounded-md group-hover:bg-primary group-hover:text-black transition-all">
-                                                        <FileText size={16} />
-                                                    </div>
-                                                    <span className="text-xs font-bold text-text-primary">View Document Proof</span>
-                                                </div>
-                                                <Eye size={14} className="text-text-muted group-hover:text-primary transition-all" />
-                                            </a>
-                                        ) : (
-                                            <div className="flex items-center gap-2 text-red-400 text-xs font-bold p-3 bg-red-400/5 rounded-lg border border-red-400/20">
-                                                <AlertCircle size={14} /> No document uploaded
-                                            </div>
-                                        )}
-                                    </div>
                                 </div>
 
                                 <div className="space-y-4 pt-4 border-t border-white/5">

@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { ArrowRight, Globe, Eye, EyeOff, Upload, FileText, CheckCircle } from 'lucide-react';
+import { ArrowRight, Globe, Eye, EyeOff } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../context/AuthContext';
 import logo from '../assets/logo.jpeg';
-import { supabase } from '../lib/supabase'; // Assuming this exists
 import { countryCodes } from '../data/countries';
 import { Footer } from '../components/Footer';
 import { ThemeToggle } from '../components/ThemeToggle';
@@ -19,7 +18,6 @@ const SignUpPage: React.FC = () => {
     const [portalType, setPortalType] = useState<'client' | 'team'>('client');
     const [countryCode, setCountryCode] = useState('+1');
     const [phone, setPhone] = useState('');
-    const [documentFile, setDocumentFile] = useState<File | null>(null);
     const [isLoading, setIsLoading] = useState(false);
 
     const { signup, isAuthenticated, user } = useAuth();
@@ -57,33 +55,11 @@ const SignUpPage: React.FC = () => {
             
             const userId = signupData.userId || signupData.id; // Backend returns id in signup
 
-            // Handle Document Upload if provided
-            let documentUrl = '';
-            if (documentFile) {
-                const fileExt = documentFile.name.split('.').pop();
-                const fileName = `${userId}-${Math.random().toString(36).substring(2)}.${fileExt}`;
-                const filePath = `registration-docs/${fileName}`;
-
-                const { error: uploadError } = await supabase.storage
-                    .from('registration-documents')
-                    .upload(filePath, documentFile);
-                
-                if (uploadError) {
-                    console.error('Document upload failed:', uploadError.message);
-                    toast.error('Registration successful, but document upload failed. Please contact admin.');
-                } else {
-                    const { data: { publicUrl } } = supabase.storage
-                        .from('registration-documents')
-                        .getPublicUrl(filePath);
-                    documentUrl = publicUrl;
-                }
-            }
 
             // Store registration data to be submitted AFTER email verification
             const registrationData = {
                 userId,
-                role: portalType,
-                documentUrl
+                role: portalType
             };
 
             setIsLoading(false);
@@ -237,35 +213,6 @@ const SignUpPage: React.FC = () => {
                             </div>
                         </div>
 
-                        {/* Document Upload (Required for Registration) */}
-                        <div className="space-y-2">
-                            <label className="block text-[10px] font-black text-text-muted uppercase tracking-widest px-1">Identity Document (ID/Passport) <span className="text-primary">*</span></label>
-                            <div className="relative group">
-                                <input
-                                    type="file"
-                                    onChange={(e) => setDocumentFile(e.target.files?.[0] || null)}
-                                    className="hidden"
-                                    id="doc-upload"
-                                    accept=".pdf,.jpg,.jpeg,.png"
-                                    required
-                                />
-                                <label
-                                    htmlFor="doc-upload"
-                                    className={`flex items-center gap-3 w-full p-4 bg-white/5 border-2 border-dashed rounded-xl cursor-pointer transition-all ${documentFile ? 'border-primary/50 bg-primary/5' : 'border-white/10 hover:border-primary/30'}`}
-                                >
-                                    <div className={`p-2 rounded-lg ${documentFile ? 'bg-primary/20 text-primary' : 'bg-white/5 text-text-muted'}`}>
-                                        {documentFile ? <CheckCircle size={20} /> : <Upload size={20} />}
-                                    </div>
-                                    <div className="flex-1 text-left">
-                                        <p className={`text-xs font-bold ${documentFile ? 'text-text-primary' : 'text-text-muted'}`}>
-                                            {documentFile ? documentFile.name : 'Upload Identity Proof'}
-                                        </p>
-                                        <p className="text-[10px] text-text-muted mt-1">PDF, JPG, PNG (Max 5MB)</p>
-                                    </div>
-                                    {documentFile && <FileText size={16} className="text-primary" />}
-                                </label>
-                            </div>
-                        </div>
 
                         <button
                             type="submit"
