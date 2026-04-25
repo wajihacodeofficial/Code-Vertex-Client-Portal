@@ -82,7 +82,10 @@ const AdminInternalTeam: React.FC = () => {
                                         <CheckCircle2 size={16} /> Grant Access
                                     </button>
                                     <button 
-                                        onClick={() => rejectUser(member.id)}
+                                        onClick={() => {
+                                            const reason = window.prompt('Please provide a reason for rejection:');
+                                            if (reason) rejectUser(member.id, reason);
+                                        }}
                                         className="flex-1 py-2.5 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition-colors flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest"
                                     >
                                         <XCircle size={16} /> Deny

@@ -60,7 +60,10 @@ const AdminClients: React.FC = () => {
                                         <CheckCircle2 size={16} /> Approve
                                     </button>
                                     <button 
-                                        onClick={() => rejectUser(client.id)}
+                                        onClick={() => {
+                                            const reason = window.prompt('Please provide a reason for rejection:');
+                                            if (reason) rejectUser(client.id, reason);
+                                        }}
                                         className="flex-1 py-2.5 bg-red-500/20 text-red-500 rounded-lg hover:bg-red-500/30 transition-colors flex items-center justify-center gap-2 text-xs font-bold uppercase tracking-widest"
                                     >
                                         <XCircle size={16} /> Reject

@@ -16,6 +16,7 @@ export interface User {
     phone?: string;
     avatar?: string;
     email_verified?: boolean;
+    company?: string;
 }
 
 export interface Project {
@@ -23,8 +24,14 @@ export interface Project {
     name: string;
     status: string;
     progress: number;
+    description?: string;
+    tech_stack?: string[];
+    techStack?: string[]; // Handle both naming conventions if present
+    deadline?: string;
+    type?: string;
     client_id?: string;
     pm_id?: string;
+    team?: any[]; // Array of team members
 }
 
 export interface Invoice {
@@ -33,6 +40,8 @@ export interface Invoice {
     amount: number;
     status: string;
     due_date?: string;
+    issue_date?: string;
+    projects?: Project; // Joined project data
 }
 
 export interface Ticket {
@@ -41,6 +50,10 @@ export interface Ticket {
     subject: string;
     priority: string;
     status: string;
+    created_at?: string;
+    reporter_id?: string;
+    users?: User; // Joined reporter data
+    projects?: Project; // Joined project data
 }
 
 export interface RegistrationRequest {

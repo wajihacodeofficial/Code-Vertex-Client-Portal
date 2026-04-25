@@ -116,7 +116,10 @@ const AdminUsersPage: React.FC = () => {
                                         <CheckCircle2 size={16} /> Authorize Access
                                     </button>
                                     <button 
-                                        onClick={() => rejectUser(user.id)}
+                                        onClick={() => {
+                                            const reason = window.prompt('Please provide a reason for rejection:');
+                                            if (reason) rejectUser(user.id, reason);
+                                        }}
                                         className="py-3 px-4 bg-red-400/10 text-red-400 border border-red-400/20 rounded-xl hover:bg-red-400/20 transition-all flex items-center justify-center"
                                     >
                                         <XCircle size={18} />

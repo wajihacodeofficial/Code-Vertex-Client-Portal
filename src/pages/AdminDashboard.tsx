@@ -125,7 +125,10 @@ const AdminDashboard: React.FC = () => {
                             </div>
                             <div className="flex gap-2 w-full sm:w-auto">
                                 <button 
-                                    onClick={() => rejectUser(user.id)} 
+                                    onClick={() => {
+                                        const reason = window.prompt('Please provide a reason for rejection:');
+                                        if (reason) rejectUser(user.id, reason);
+                                    }} 
                                     className="flex-1 sm:flex-none px-4 py-2 border border-red-500/30 text-red-500 hover:bg-red-500/10 rounded-button transition-colors text-xs font-bold uppercase tracking-widest text-center"
                                 >
                                     Reject
