@@ -1,128 +1,61 @@
-const nodemailer = require('nodemailer');
 const supabase = require('./db');
+const { sendEmail } = require('./utils/sendEmail');
+const { generateOtp } = require('./utils/generateOtp');
 require('dotenv').config();
 
-// ─── SMTP Transporter ───────────────────────────────────
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST || 'smtp.zoho.com',
-    port: parseInt(process.env.SMTP_PORT) || 465,
-    secure: process.env.SMTP_SECURE !== 'false', // Defaults to true for 465
-    auth: {
-        user: process.env.SMTP_USER || process.env.ZOHO_EMAIL,
-        pass: process.env.SMTP_PASS || process.env.ZOHO_PASSWORD,
-    },
-    tls: {
-       rejectUnauthorized: false
-    }
-});
-
 /**
- * Generates a cryptographically safe 6-digit OTP string.
- */
-function generateOTP() {
-    return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-/**
- * Stores OTP in the database and sends it via Zoho SMTP.
- * Invalidates any previous unused OTPs for the same email first.
+ * Stores OTP in the database and sends it via Resend.
  * @param {string} email
- * @returns {Promise<void>}
+ * @param {object} metadata - Optional registration metadata
  */
-async function sendOTP(email) {
+async function sendOTP(email, metadata = null) {
     const normalizedEmail = email.trim().toLowerCase();
-    const otp = generateOTP();
-    const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes from now
+    const otp = generateOtp();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
 
-    console.log(`\n📧  Generating OTP for: ${normalizedEmail}`);
-
-    // Invalidate any previous OTPs for this email
+    // 1. Clear old OTPs
     await supabase
         .from('otp_verifications')
         .update({ used: true })
         .eq('email', normalizedEmail)
         .eq('used', false);
 
-    // Insert fresh OTP
-    const { error: insertError } = await supabase
+    // 2. Insert new OTP
+    const { error } = await supabase
         .from('otp_verifications')
         .insert({
             email: normalizedEmail,
             otp_code: otp,
             expires_at: expiresAt.toISOString(),
             used: false,
+            metadata: metadata
         });
 
-    if (insertError) {
-        throw new Error('Failed to store OTP: ' + insertError.message);
-    }
+    if (error) throw new Error('Failed to store OTP: ' + error.message);
 
-    // Send OTP via SMTP
-    const senderName = process.env.MAIL_FROM || process.env.ZOHO_FROM_NAME || 'Code Vertex';
-    const senderEmail = process.env.SMTP_USER || process.env.ZOHO_EMAIL;
-    const senderPassword = process.env.SMTP_PASS || process.env.ZOHO_PASSWORD;
+    // 3. Send Email
+    const html = `
+        <div style="font-family: sans-serif; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #22c55e; text-align: center;">Verification Code</h2>
+            <p>Hello,</p>
+            <p>Your verification code for Code Vertex is:</p>
+            <div style="background: #f4f4f4; padding: 20px; text-align: center; font-size: 32px; font-weight: bold; letter-spacing: 5px; color: #333; border-radius: 5px; margin: 20px 0;">
+                ${otp}
+            </div>
+            <p style="color: #666; font-size: 12px; text-align: center;">This code expires in 10 minutes. Do not share it with anyone.</p>
+        </div>
+    `;
 
-    // Fallback Mode: If credentials are placeholders, just log the OTP to console
-    const isPlaceholder = !senderEmail || 
-        senderEmail.includes('your_email') || 
-        !senderPassword || 
-        senderPassword.includes('your_zoho');
-
-    if (isPlaceholder) {
-        console.log('\n================================================');
-        console.log(`📧  [SMTP FALLBACK] Verification Code for ${normalizedEmail}:`);
-        console.log(`👉  CODE: ${otp}`);
-        console.log('================================================\n');
-        return;
-    }
-
-    try {
-        await transporter.sendMail({
-            from: `"${senderName}" <${senderEmail}>`,
-            to: normalizedEmail,
-            subject: 'Your Code Vertex Verification Code',
-            html: `
-                <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #0f0f0f; border-radius: 16px; overflow: hidden; border: 1px solid #1f1f1f;">
-                    <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 32px; text-align: center;">
-                        <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.5px;">Code Vertex</h1>
-                        <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: 2px;">Email Verification</p>
-                    </div>
-                    <div style="padding: 40px 32px; text-align: center;">
-                        <p style="color: #a0a0a0; font-size: 15px; margin: 0 0 28px; line-height: 1.6;">
-                            Use the code below to verify your email address.<br/>
-                            This code expires in <strong style="color: #22c55e;">5 minutes</strong>.
-                        </p>
-                        <div style="background: #1a1a1a; border: 1px solid #2a2a2a; border-radius: 12px; padding: 28px; margin: 0 auto 28px; display: inline-block; min-width: 200px;">
-                            <span style="font-size: 42px; font-weight: 900; letter-spacing: 12px; color: #22c55e; font-family: 'Courier New', monospace;">${otp}</span>
-                        </div>
-                        <p style="color: #666; font-size: 12px; margin: 0; line-height: 1.6;">
-                            If you didn't request this, please ignore this email.<br/>
-                            Never share this code with anyone.
-                        </p>
-                    </div>
-                    <div style="padding: 20px 32px; border-top: 1px solid #1f1f1f; text-align: center;">
-                        <p style="color: #444; font-size: 11px; margin: 0;">© ${new Date().getFullYear()} Code Vertex · <a href="https://codevertex.solutions" style="color: #22c55e; text-decoration: none;">codevertex.solutions</a></p>
-                    </div>
-                </div>
-            `,
-        });
-    } catch (smtpErr) {
-        console.error('❌  [SMTP Error] Failed to send email:', smtpErr.message);
-        throw new Error('Failed to send verification email: ' + smtpErr.message);
-    }
+    await sendEmail(normalizedEmail, 'Your Verification Code - Code Vertex', html);
+    console.log(`✅ [OTP]: Code ${otp} sent to ${normalizedEmail}`);
 }
 
 /**
- * Validates OTP for a given email.
- * @param {string} email
- * @param {string} otpCode
- * @returns {Promise<{ valid: boolean, error?: string }>}
+ * Verifies OTP and returns metadata.
  */
 async function verifyOTP(email, otpCode) {
     const normalizedEmail = email.trim().toLowerCase();
     const normalizedOtp = otpCode.trim();
-
-    console.log(`\n🔍 Verifying OTP for: ${normalizedEmail}`);
 
     const { data: records, error } = await supabase
         .from('otp_verifications')
@@ -133,111 +66,65 @@ async function verifyOTP(email, otpCode) {
         .order('created_at', { ascending: false })
         .limit(1);
 
-    if (error) {
-        console.error('❌ DB error during OTP check:', error.message);
-        return { valid: false, error: 'Database error during OTP check' };
-    }
-
-    if (!records || records.length === 0) {
-        console.warn(`⚠️  No valid OTP found for ${normalizedEmail} with code ${normalizedOtp}`);
-        return { valid: false, error: 'Invalid verification code. Please check and try again.' };
+    if (error || !records || records.length === 0) {
+        return { valid: false, error: 'Invalid or expired OTP' };
     }
 
     const record = records[0];
 
-    // Check expiry
     if (new Date() > new Date(record.expires_at)) {
-        return { valid: false, error: 'OTP has expired. Please request a new one.' };
+        return { valid: false, error: 'OTP has expired' };
     }
 
-    // Mark OTP as used
+    // Mark as used
     await supabase
         .from('otp_verifications')
         .update({ used: true })
         .eq('id', record.id);
 
-    return { valid: true };
+    return { valid: true, metadata: record.metadata };
 }
 
 /**
- * Stores a token in the database and sends a password reset link via Zoho SMTP.
- * @param {string} email
- * @returns {Promise<void>}
+ * Sends a password reset link.
  */
 async function sendPasswordResetLink(email) {
     const normalizedEmail = email.trim().toLowerCase();
-    const otpCode = generateOTP(); // We use the same 6-digit OTP generator for the token
-    const expiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes max
-    
-    // Invalidate previous
+    const token = generateOtp();
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000);
+
     await supabase
         .from('otp_verifications')
         .update({ used: true })
         .eq('email', normalizedEmail)
         .eq('used', false);
-        
-    // Insert new
-    const { error: insertError } = await supabase
+
+    const { error } = await supabase
         .from('otp_verifications')
         .insert({
             email: normalizedEmail,
-            otp_code: otpCode,
+            otp_code: token,
             expires_at: expiresAt.toISOString(),
-            used: false,
+            used: false
         });
 
-    if (insertError) {
-        throw new Error('Failed to store password reset token: ' + insertError.message);
-    }
-    
-    const frontendUrl = process.env.FRONTEND_URL || (process.env.NODE_ENV === 'production' ? 'https://portal.codevertex.solutions' : 'http://localhost:5173');
-    const resetLink = `${frontendUrl}/reset-password?token=${otpCode}&email=${encodeURIComponent(normalizedEmail)}`;
-    
-    const senderName = process.env.MAIL_FROM || process.env.ZOHO_FROM_NAME || 'Code Vertex';
-    const senderEmail = process.env.SMTP_USER || process.env.ZOHO_EMAIL;
-    const senderPassword = process.env.SMTP_PASS || process.env.ZOHO_PASSWORD;
+    if (error) throw error;
 
-    const isPlaceholder = !senderEmail || 
-    senderEmail.includes('your_email') || 
-    !senderPassword || 
-    senderPassword.includes('your_zoho');
+    const frontendUrl = process.env.FRONTEND_URL || 'https://portal.codevertex.solutions';
+    const resetLink = `${frontendUrl}/reset-password?token=${token}&email=${encodeURIComponent(normalizedEmail)}`;
 
-    if (isPlaceholder) {
-        console.log('\n================================================');
-        console.log(`📧  [SMTP FALLBACK] Password Reset Link for ${normalizedEmail}:`);
-        console.log(`👉  LINK: ${resetLink}`);
-        console.log('================================================\n');
-        return;
-    }
+    const html = `
+        <div style="font-family: sans-serif; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+            <h2 style="color: #22c55e; text-align: center;">Password Reset</h2>
+            <p>You requested to reset your password. Click the button below to proceed:</p>
+            <div style="text-align: center; margin: 30px 0;">
+                <a href="${resetLink}" style="background-color: #22c55e; color: white; padding: 15px 25px; text-decoration: none; border-radius: 5px; font-weight: bold;">Reset Password</a>
+            </div>
+            <p style="color: #666; font-size: 12px; text-align: center;">This link expires in 15 minutes. If you did not request this, please ignore this email.</p>
+        </div>
+    `;
 
-    try {
-        await transporter.sendMail({
-            from: `"${senderName}" <${senderEmail}>`,
-            to: normalizedEmail,
-            subject: 'Password Reset - Code Vertex',
-            html: `
-                <div style="font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; max-width: 480px; margin: 0 auto; background: #0f0f0f; border-radius: 16px; overflow: hidden; border: 1px solid #1f1f1f;">
-                    <div style="background: linear-gradient(135deg, #22c55e 0%, #16a34a 100%); padding: 32px; text-align: center;">
-                        <h1 style="color: white; margin: 0; font-size: 24px; font-weight: 900; letter-spacing: -0.5px;">Code Vertex</h1>
-                        <p style="color: rgba(255,255,255,0.8); margin: 8px 0 0; font-size: 13px; text-transform: uppercase; letter-spacing: 2px;">Password Reset</p>
-                    </div>
-                    <div style="padding: 40px 32px; text-align: center;">
-                        <p style="color: #a0a0a0; font-size: 15px; margin: 0 0 28px; line-height: 1.6;">
-                            We received a request to reset your password.<br/>
-                            Click the button below to choose a new password. This link expires in <strong style="color: #22c55e;">15 minutes</strong>.
-                        </p>
-                        <a href="${resetLink}" style="display: inline-block; background: #22c55e; color: #000; font-weight: 900; text-decoration: none; padding: 16px 32px; border-radius: 8px; text-transform: uppercase; letter-spacing: 1px; font-size: 14px; margin-bottom: 28px;">Reset Password</a>
-                        <p style="color: #666; font-size: 12px; margin: 0; line-height: 1.6;">
-                            If you didn't request a password reset, you can safely ignore this email.
-                        </p>
-                    </div>
-                </div>
-            `,
-        });
-    } catch (smtpErr) {
-        console.error('❌  [SMTP Error] Failed to send password reset email:', smtpErr.message);
-        throw new Error('Failed to send password reset email: ' + smtpErr.message);
-    }
+    await sendEmail(normalizedEmail, 'Password Reset - Code Vertex', html);
 }
 
 module.exports = { sendOTP, verifyOTP, sendPasswordResetLink };

@@ -71,103 +71,26 @@ authRouter.post('/signup', async (req, res) => {
         const { data: existingUser } = await supabase
             .from('users')
             .select('id')
-            .eq('email', email.toLowerCase())
+            .eq('email', email)
             .maybeSingle();
 
         if (existingUser) {
             return res.status(409).json({ error: 'An account with this email already exists.' });
         }
 
-        // Step 2: Create user in Supabase Auth
-        let authData;
-        try {
-            const { data: createdAuth, error: authError } = await supabase.auth.admin.createUser({
-                email,
-                password,
-                email_confirm: false,
-                user_metadata: { name, role },
-            });
+        // Step 2: Generate and send OTP (with metadata for later creation)
+        const metadata = { name, password, role, phone: phone || null };
+        await sendOTP(email, metadata);
 
-            if (authError) {
-                if (authError.message.includes('already been registered')) {
-                    console.log(`ℹ️ [Signup]: User ${email} already exists in Auth. Checking for missing profile...`);
-                    const { data: authList } = await supabase.auth.admin.listUsers();
-                    const existingAuthUser = authList?.users?.find(u => u.email === email);
-                    
-                    if (existingAuthUser) {
-                        authData = { user: existingAuthUser };
-                    } else {
-                        return res.status(409).json({ error: 'Email already registered in Auth but profile reconciliation failed.' });
-                    }
-                } else {
-                    console.error('[Signup Auth Error]:', authError.message);
-                    return res.status(400).json({ error: 'Authentication service error: ' + authError.message });
-                }
-            } else {
-                authData = createdAuth;
-            }
-        } catch (authStageErr) {
-            console.error('[Signup Stage: Auth] Fatal:', authStageErr);
-            return res.status(500).json({ error: 'Identity verification service unavailable.' });
-        }
+        console.log(`📧 [Signup Step 1]: OTP sent to ${email}`);
+        res.status(200).json({
+            message: 'Verification code sent to your email. Please verify to complete registration.',
+            email: email
+        });
 
-        console.log(`👤 [Signup]: Auth user ready (UID: ${authData.user.id})`);
-
-        // Step 3: Insert user profile into public.users
-        let newUser;
-        try {
-            const { data, error: dbError } = await supabase
-                .from('users')
-                .insert({
-                    supabase_uid: authData.user.id,
-                    email,
-                    name,
-                    role,
-                    phone: phone || null,
-                    status: 'pending',
-                    email_verified: false,
-                    password_hash: 'SUPABASE_AUTH',
-                })
-                .select('id')
-                .maybeSingle();
-
-            if (dbError) {
-                console.error('[Signup Stage: DB] Error:', dbError.message, dbError.details);
-                await supabase.auth.admin.deleteUser(authData.user.id).catch(e => console.error('Cleanup failed:', e));
-                return res.status(500).json({ error: 'Failed to save user profile. ' + (dbError.message || '') });
-            }
-            newUser = data;
-        } catch (dbStageErr) {
-            console.error('[Signup Stage: DB] Fatal:', dbStageErr);
-            return res.status(500).json({ error: 'Profile storage service unavailable.' });
-        }
-
-        // Step 4: Generate and send OTP
-        try {
-            await sendOTP(email);
-            console.log(`✅ [Signup Success]: ${email} (Role: ${role})`);
-            res.status(201).json({
-                message: 'Account created. Please check your email for the verification code.',
-                email: email,
-                id: newUser?.id
-            });
-        } catch (otpStageErr) {
-            console.error('[Signup Stage: OTP] Error:', otpStageErr.message);
-            return res.status(201).json({ 
-                success: true,
-                message: 'Account created, but verification email failed to send. Please use "Resend Code" to try again.',
-                warning: 'Email service delay',
-                email: email,
-                id: newUser?.id
-            });
-        }
     } catch (err) {
         console.error('❌ [Signup Error]:', err);
-        const errorMessage = err.message || 'Signup failed. Please try again.';
-        res.status(500).json({ 
-            error: 'Signup failed. Internal Server Error.',
-            details: process.env.NODE_ENV === 'production' ? null : errorMessage
-        });
+        res.status(500).json({ error: 'Registration failed. ' + err.message });
     }
 });
 
@@ -182,62 +105,81 @@ authRouter.post('/verify-otp', async (req, res) => {
         return res.status(400).json({ error: 'Email and OTP are required.' });
     }
 
-    // Normalization
     email = email.trim().toLowerCase();
     otp = otp.trim();
 
-    if (!/^\d{6}$/.test(otp)) {
-        return res.status(400).json({ error: 'OTP must be a 6-digit number.' });
-    }
-
     try {
-        // Validate OTP
-        const result = await verifyOTP(email.toLowerCase(), otp);
+        // 1. Verify OTP and get metadata
+        const result = await verifyOTP(email, otp);
 
         if (!result.valid) {
             return res.status(400).json({ error: result.error || 'Invalid or expired OTP' });
         }
 
-        // Find the user in Supabase Auth by email
-        const { data: authUsers, error: listError } = await supabase.auth.admin.listUsers();
-        if (listError) {
-            return res.status(500).json({ error: 'Failed to verify user.' });
+        const metadata = result.metadata;
+        if (!metadata) {
+            return res.status(400).json({ error: 'Registration session expired. Please sign up again.' });
         }
 
-        const authUser = authUsers.users.find(u => u.email === email.toLowerCase());
-        if (!authUser) {
-            return res.status(404).json({ error: 'User not found.' });
-        }
-
-        // Confirm email in Supabase Auth
-        const { error: updateAuthError } = await supabase.auth.admin.updateUserById(authUser.id, {
+        // 2. Create user in Supabase Auth (Admin SDK)
+        const { data: authData, error: authError } = await supabase.auth.admin.createUser({
+            email: email,
+            password: metadata.password,
             email_confirm: true,
+            user_metadata: { name: metadata.name, role: metadata.role }
         });
 
-        if (updateAuthError) {
-            console.error('[Verify OTP] Auth Update Error:', updateAuthError.message);
-            return res.status(500).json({ error: 'Failed to update authentication status.' });
+        if (authError) {
+            console.error('[Verify OTP] Auth Error:', authError.message);
+            return res.status(500).json({ error: 'Auth creation failed: ' + authError.message });
         }
 
-        // Update email_verified in public.users
-        const { error: dbUpdateError } = await supabase
+        // 3. Insert into public.users
+        const { data: userData, error: dbError } = await supabase
             .from('users')
-            .update({ email_verified: true })
-            .eq('email', email.toLowerCase());
+            .insert({
+                supabase_uid: authData.user.id,
+                email: email,
+                name: metadata.name,
+                role: metadata.role,
+                phone: metadata.phone,
+                status: 'pending',
+                email_verified: true,
+                password_hash: 'SUPABASE_AUTH'
+            })
+            .select('id')
+            .single();
 
-        if (dbUpdateError) {
-            console.error('[Verify OTP] DB Update Error:', dbUpdateError.message);
-            return res.status(500).json({ error: 'Failed to update user profile status.' });
+        if (dbError) {
+            console.error('[Verify OTP] DB Error:', dbError.message);
+            return res.status(500).json({ error: 'Database record creation failed.' });
         }
 
-        console.log(`✅ [Verification Success]: ${email}`);
+        // 4. Create registration request
+        await supabase
+            .from('registration_requests')
+            .insert({
+                user_id: userData.id,
+                role: metadata.role,
+                status: 'PENDING'
+            });
 
-        res.json({
-            message: 'Email verified successfully. Your account is pending admin approval.',
-        });
+        // 5. Notify Admin via Socket.io
+        const io = req.app.get('io');
+        if (io) {
+            io.emit('new_registration_request', {
+                email: email,
+                name: metadata.name,
+                role: metadata.role
+            });
+        }
+
+        console.log(`✅ [Registration Complete]: ${email} - Awaiting Approval`);
+        res.json({ message: 'Email verified. Your account is now awaiting admin approval.' });
+
     } catch (err) {
         console.error('[Verify OTP Error]', err);
-        res.status(500).json({ error: 'Verification failed. Please try again.' });
+        res.status(500).json({ error: 'Verification failed.' });
     }
 });
 
@@ -277,83 +219,65 @@ authRouter.post('/resend-otp', async (req, res) => {
 });
 
 authRouter.post('/login', async (req, res) => {
-    let { email, password, role: requestedRole } = req.body;
+    let { email, password } = req.body;
 
     if (!email || !password) {
         return res.status(400).json({ error: 'Email and password are required.' });
     }
 
-    // Strict Normalization
     email = email.trim().toLowerCase();
 
     try {
-        console.log(`🔑 [Login]: Attempting for ${email} (Role: ${requestedRole || 'default'})`);
+        console.log(`🔑 [Login]: Attempting for ${email}`);
         
-        // Ensure any previous session on this client instance is cleared before a new attempt
-        await supabase.auth.signOut().catch(() => {});
-
-        // Step 1: Authenticate with Supabase Auth
+        // 1. Authenticate with Supabase Auth
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
             email,
             password,
         });
 
         if (authError) {
-            console.log(`⚠️ [Login Attempt Failed]: ${email} - ${authError.message}`);
-            // Supabase returns 'Invalid login credentials' for wrong email/password
-            if (authError.message.includes('Invalid login credentials') || authError.status === 400) {
-                return res.json({ success: false, error: 'Invalid email or password.' });
-            }
-            if (authError.message.includes('Email not confirmed')) {
-                return res.json({ success: false, error: 'Please verify your email first. Check your inbox for the verification code.' });
-            }
-            return res.json({ success: false, error: authError.message });
+            console.log(`⚠️ [Login Failed]: ${email} - ${authError.message}`);
+            return res.status(401).json({ error: 'Invalid email or password.' });
         }
 
-        // Step 2: Check email verification status in our DB
+        // 2. Fetch user record from users table via supabase_uid
         const { data: userProfile, error: profileError } = await supabase
             .from('users')
             .select('*')
-            .eq('email', email.toLowerCase())
+            .eq('supabase_uid', authData.user.id)
             .maybeSingle();
 
         if (profileError || !userProfile) {
             console.error(`❌ [Login Error]: User ${email} authenticated but profile not found in DB.`);
-            return res.json({ success: false, error: 'Invalid email or password.' });
+            return res.status(401).json({ error: 'User profile not found.' });
         }
 
-        if (!userProfile.email_verified) {
-            return res.json({ success: false, error: 'Please verify your email first. Check your inbox for the verification code.' });
-        }
-
-        // Step 3: Check account status
+        // 3. Guard: Check account status
         if (userProfile.status === 'pending') {
-            return res.json({ success: false, error: 'Your account is awaiting admin approval. You will be notified once approved.' });
+            return res.status(403).json({ error: 'Your account is pending admin approval.' });
         }
 
         if (userProfile.status === 'rejected') {
-            return res.json({ success: false, error: 'Your account has been rejected. Please contact support.' });
+            // Try to find rejection reason
+            const { data: regReq } = await supabase
+                .from('registration_requests')
+                .select('rejection_reason')
+                .eq('user_id', userProfile.id)
+                .eq('status', 'REJECTED')
+                .maybeSingle();
+
+            const reason = regReq?.rejection_reason ? ` Reason: ${regReq.rejection_reason}` : '';
+            return res.status(403).json({ error: `Registration rejected.${reason}` });
         }
 
-        // Step 4: Role validation
-        if (requestedRole && userProfile.role !== requestedRole) {
-            // Allow admin to log in as team
-            const isAdminAsTeam = userProfile.role === 'admin' && requestedRole === 'team';
-            if (!isAdminAsTeam) {
-                return res.json({
-                    success: false,
-                    error: `Role mismatch. This is a ${userProfile.role} account.`
-                });
-            }
-        }
+        console.log(`✅ [Login Success]: ${email} (Role: ${userProfile.role})`);
 
-        console.log(`✅ [Login Success]: ${email} (UID: ${userProfile.supabase_uid})`);
-
-        // Step 5: Return session + profile
+        // 4. Return session + profile
         res.json({
             success: true,
             message: 'Login successful.',
-            session: authData.session, // Contains access_token (JWT)
+            session: authData.session,
             user: {
                 id: userProfile.id,
                 supabase_uid: userProfile.supabase_uid,
@@ -366,7 +290,7 @@ authRouter.post('/login', async (req, res) => {
         });
     } catch (err) {
         console.error('[Login Error]', err);
-        res.status(500).json({ error: 'Login failed. Please try again.' });
+        res.status(500).json({ error: 'Internal server error during login.' });
     }
 });
 

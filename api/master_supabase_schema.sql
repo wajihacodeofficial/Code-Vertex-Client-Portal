@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS otp_verifications (
     otp_code VARCHAR(6) NOT NULL,
     expires_at TIMESTAMP WITH TIME ZONE NOT NULL,
     used BOOLEAN DEFAULT FALSE,
+    metadata JSONB, -- Stores {name, password, role, phone} until verified
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 

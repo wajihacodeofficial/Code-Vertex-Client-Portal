@@ -9,14 +9,38 @@ export type UserRole = 'client' | 'team' | 'admin';
 export interface User {
     id: string;
     supabase_uid?: string;
-    name: string;
     email: string;
+    name: string;
     role: UserRole;
+    status: 'pending' | 'approved' | 'rejected';
     phone?: string;
-    company?: string;
     avatar?: string;
-    status?: 'pending' | 'approved' | 'rejected';
     email_verified?: boolean;
+}
+
+export interface Project {
+    id: string;
+    name: string;
+    status: string;
+    progress: number;
+    client_id?: string;
+    pm_id?: string;
+}
+
+export interface Invoice {
+    id: string;
+    project_id: string;
+    amount: number;
+    status: string;
+    due_date?: string;
+}
+
+export interface Ticket {
+    id: string;
+    project_id: string;
+    subject: string;
+    priority: string;
+    status: string;
 }
 
 export interface RegistrationRequest {
@@ -46,21 +70,21 @@ interface AuthContextType {
     user: User | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (email: string, password: string, role: UserRole) => Promise<UserRole>;
-    signup: (name: string, email: string, password: string, role?: UserRole, phone?: string) => Promise<any>;
+    login: (email: string, password: string) => Promise<UserRole>;
+    signup: (name: string, email: string, password: string, role?: UserRole, phone?: string) => Promise<void>;
     logout: () => Promise<void>;
     allUsers: User[];
-    approveUser: (id: string) => Promise<void>;
-    rejectUser: (id: string) => Promise<void>;
+    approveUser: (requestId: string) => Promise<void>;
+    rejectUser: (requestId: string, reason: string) => Promise<void>;
     deleteUser: (id: string) => Promise<void>;
     deleteProject: (id: string) => Promise<void>;
     deleteInvoice: (id: string) => Promise<void>;
     deleteTicket: (id: string) => Promise<void>;
     forgotPassword: (email: string) => Promise<void>;
     resetPassword: (email: string, token: string, newPassword: string) => Promise<void>;
-    projects: any[];
-    invoices: any[];
-    tickets: any[];
+    projects: Project[];
+    invoices: Invoice[];
+    tickets: Ticket[];
     adminStats: AdminStats | null;
     fetchAdminData: () => Promise<void>;
     fetchProjects: () => Promise<void>;
@@ -75,9 +99,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const [user, setUser] = useState<User | null>(null);
     const [isLoading, setIsLoading] = useState(true);
     const [allUsers, setAllUsers] = useState<User[]>([]);
-    const [projects, setProjects] = useState<any[]>([]);
-    const [invoices, setInvoices] = useState<any[]>([]);
-    const [tickets, setTickets] = useState<any[]>([]);
+    const [projects, setProjects] = useState<Project[]>([]);
+    const [invoices, setInvoices] = useState<Invoice[]>([]);
+    const [tickets, setTickets] = useState<Ticket[]>([]);
     const [adminStats, setAdminStats] = useState<AdminStats | null>(null);
 
 
@@ -155,8 +179,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [fetchAdminData, fetchProjects]);
 
     // ── Login ────────────────────────────────────────────────────────────────
-    const login = async (email: string, password: string, role: UserRole): Promise<UserRole> => {
-        const { data } = await api.post('/api/auth/login', { email, password, role });
+    const login = async (email: string, password: string): Promise<UserRole> => {
+        const { data } = await api.post('/api/auth/login', { email, password });
 
         if (data.success === false) {
             throw new Error(data.error || 'Login failed.');
@@ -202,48 +226,47 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const logout = async (): Promise<void> => {
         try {
             await api.post('/api/auth/logout');
-        } catch {
-            // Even if server call fails, clear local state
-        }
+        } catch { /* Suppress */ }
+
+        // Clear local state
         setUser(null);
+        setAllUsers([]);
+        setProjects([]);
+        
+        // Clear storage
         localStorage.removeItem('cv_auth_user');
         localStorage.removeItem('cv_session');
+        localStorage.removeItem('token'); // Generic cleanup
+        localStorage.removeItem('user');  // Generic cleanup
+        
         toast.success('Logged out successfully');
+        window.location.href = '/login'; // Force clear all states
     };
 
     // ── Admin: Approve User ───────────────────────────────────────────────────
-    const approveUser = async (id: string): Promise<void> => {
+    const approveUser = async (requestId: string): Promise<void> => {
         try {
-            const { data: updated } = await api.patch(`/api/users/${id}/status`, { status: 'approved' });
-            if (updated && updated.status) {
-                setAllUsers((prev: User[]) => prev.map((u: User) => u.id === id ? { ...u, status: updated.status } : u));
-                toast.success('User account approved successfully');
-            } else {
-                // Fallback local update if the response doesn't contain the object
-                setAllUsers((prev: User[]) => prev.map((u: User) => u.id === id ? { ...u, status: 'approved' } : u));
-                toast.success('User account approved successfully');
-            }
-        } catch (err: unknown) {
-            const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-            toast.error(message || 'Failed to approve user');
+            await api.patch(`/api/registration-requests/${requestId}/review`, { action: 'APPROVE' });
+            toast.success('Registration request approved');
+            await fetchAdminData(); // Refresh list
+        } catch (err: any) {
+            const message = err.response?.data?.error || 'Failed to approve request';
+            toast.error(message);
         }
     };
 
     // ── Admin: Reject User ────────────────────────────────────────────────────
-    const rejectUser = async (id: string): Promise<void> => {
+    const rejectUser = async (requestId: string, reason: string): Promise<void> => {
         try {
-            const { data: updated } = await api.patch(`/api/users/${id}/status`, { status: 'rejected' });
-            if (updated && updated.status) {
-                setAllUsers((prev: User[]) => prev.map((u: User) => u.id === id ? { ...u, status: updated.status } : u));
-                toast.success('User account rejected');
-            } else {
-                 // Fallback local update if the response doesn't contain the object
-                 setAllUsers((prev: User[]) => prev.map((u: User) => u.id === id ? { ...u, status: 'rejected' } : u));
-                 toast.success('User account rejected');
-            }
-        } catch (err: unknown) {
-            const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
-            toast.error(message || 'Failed to reject user');
+            await api.patch(`/api/registration-requests/${requestId}/review`, { 
+                action: 'REJECT', 
+                rejection_reason: reason 
+            });
+            toast.success('Registration request rejected');
+            await fetchAdminData(); // Refresh list
+        } catch (err: any) {
+            const message = err.response?.data?.error || 'Failed to reject request';
+            toast.error(message);
         }
     };
 

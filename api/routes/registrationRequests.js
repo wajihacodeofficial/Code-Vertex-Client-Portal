@@ -77,11 +77,12 @@ router.get('/', async (req, res) => {
                 users (
                     name,
                     email,
-                    phone
+                    phone,
+                    role
                 )
             `)
             .eq('status', 'PENDING')
-            .order('created_at', { ascending: false });
+            .order('created_at', { ascending: true });
 
         if (error) throw error;
         res.json(data);
@@ -94,17 +95,18 @@ router.get('/', async (req, res) => {
 /**
  * PATCH /api/registration-requests/:id/review
  * Approve or reject a registration request.
+ * Body: { action: "APPROVE" | "REJECT", rejection_reason?: string }
  */
 router.patch('/:id/review', async (req, res) => {
     const { id } = req.params;
-    const { status, rejectionReason } = req.body;
+    const { action, rejection_reason } = req.body;
 
-    if (!['APPROVED', 'REJECTED'].includes(status)) {
-        return res.status(400).json({ error: 'Invalid status. Must be APPROVED or REJECTED.' });
+    if (!['APPROVE', 'REJECT'].includes(action)) {
+        return res.status(400).json({ error: 'Invalid action. Must be APPROVE or REJECT.' });
     }
 
-    if (status === 'REJECTED' && !rejectionReason) {
-        return res.status(400).json({ error: 'Rejection reason is required.' });
+    if (action === 'REJECT' && !rejection_reason) {
+        return res.status(400).json({ error: 'Rejection reason is required for REJECT action.' });
     }
 
     try {
@@ -121,59 +123,66 @@ router.patch('/:id/review', async (req, res) => {
 
         const userEmail = request.users.email;
         const userName = request.users.name;
+        const targetStatus = action === 'APPROVE' ? 'APPROVED' : 'REJECTED';
+        const userStatus = action === 'APPROVE' ? 'approved' : 'rejected';
 
-        // 2. Update request status
-        const { error: updateError } = await supabase
+        // 2. Update registration_requests table
+        const { error: rrError } = await supabase
             .from('registration_requests')
-            .update({ status, rejection_reason: rejectionReason || null })
+            .update({ 
+                status: targetStatus, 
+                rejection_reason: action === 'REJECT' ? rejection_reason : null 
+            })
             .eq('id', id);
 
-        if (updateError) throw updateError;
+        if (rrError) throw rrError;
 
-        // 3. Update user status in users table
-        const userStatus = status.toLowerCase(); // 'approved' or 'rejected'
-        const { error: userUpdateError } = await supabase
+        // 3. Update users table status
+        const { error: userError } = await supabase
             .from('users')
             .update({ status: userStatus })
             .eq('id', request.user_id);
 
-        if (userUpdateError) throw userUpdateError;
+        if (userError) throw userError;
 
-        // 4. If approved, confirm email in Supabase Auth to allow login
-        if (status === 'APPROVED' && request.users.supabase_uid) {
-            await supabase.auth.admin.updateUserById(request.users.supabase_uid, {
-                email_confirm: true
-            });
-        }
+        // 4. Send Email Notification
+        const subject = action === 'APPROVE' ? 'Account Approved - Code Vertex' : 'Account Registration Update - Code Vertex';
+        const html = action === 'APPROVE'
+            ? `<div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                <h2 style="color: #22c55e;">Congratulations!</h2>
+                <p>Hello <strong>${userName}</strong>,</p>
+                <p>Your registration request for the Code Vertex Client Portal has been <strong>APPROVED</strong>.</p>
+                <p>You can now log in to your dashboard using your registered email and password.</p>
+                <a href="${process.env.FRONTEND_URL || 'https://portal.codevertex.solutions'}/login" style="display: inline-block; padding: 10px 20px; background-color: #22c55e; color: white; text-decoration: none; border-radius: 5px; margin-top: 10px;">Login Now</a>
+               </div>`
+            : `<div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 20px; border: 1px solid #eee; border-radius: 10px;">
+                <h2 style="color: #ef4444;">Registration Update</h2>
+                <p>Hello <strong>${userName}</strong>,</p>
+                <p>We regret to inform you that your registration request has been <strong>REJECTED</strong>.</p>
+                <p><strong>Reason:</strong> ${rejection_reason}</p>
+                <p>If you believe this is a mistake, please contact our support team.</p>
+               </div>`;
 
-        // 5. Send Email
-        const emailSubject = status === 'APPROVED' ? 'Account Approved - Code Vertex' : 'Account Rejected - Code Vertex';
-        const emailContent = status === 'APPROVED' 
-            ? `<p>Hello ${userName},</p><p>Your account has been approved. You can now log in to the portal.</p>`
-            : `<p>Hello ${userName},</p><p>Your registration was rejected for the following reason:</p><p><strong>${rejectionReason}</strong></p><p>Please re-apply with the correct details.</p>`;
+        await transporter.sendMail({
+            from: `"Code Vertex Admin" <${process.env.SMTP_USER}>`,
+            to: userEmail,
+            subject: subject,
+            html: html
+        }).catch(err => console.error('Approval/Rejection Email Error:', err.message));
 
-        try {
-            await transporter.sendMail({
-                from: `"Code Vertex Admin" <${process.env.SMTP_USER || process.env.ZOHO_EMAIL}>`,
-                to: userEmail,
-                subject: emailSubject,
-                html: emailContent
-            });
-        } catch (mailErr) {
-            console.error('[Mail Error]:', mailErr.message);
-            // Don't fail the whole request if mail fails, but log it
-        }
-
-        // 6. Emit Socket event to notify user (if they are connected)
+        // 5. Emit Socket.io event
         const io = req.app.get('io');
         if (io) {
-            io.emit('registration_update', { userId: request.user_id, status });
+            const eventName = action === 'APPROVE' ? 'registration_approved' : 'registration_rejected';
+            io.emit(eventName, { userId: request.user_id, email: userEmail });
         }
 
-        res.json({ message: `Registration ${status.toLowerCase()} successfully.` });
+        console.log(`📢 [Admin Decision]: ${action} for ${userEmail}`);
+        res.json({ success: true, message: `Registration ${targetStatus.toLowerCase()} successfully.` });
+
     } catch (err) {
-        console.error('[Review Request Error]:', err.message);
-        res.status(500).json({ error: err.message });
+        console.error('[Admin Decision Error]:', err.message);
+        res.status(500).json({ error: 'Failed to process decision.' });
     }
 });
 

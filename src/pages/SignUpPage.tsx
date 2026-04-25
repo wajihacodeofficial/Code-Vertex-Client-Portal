@@ -51,24 +51,13 @@ const SignUpPage: React.FC = () => {
 
         try {
             const fullPhone = phone ? `${countryCode} ${phone}` : undefined;
-            const signupData = await signup(name, email, password, portalType, fullPhone);
+            await signup(name, email, password, portalType, fullPhone);
             
-            const userId = signupData.userId || signupData.id; // Backend returns id in signup
-
-
-            // Store registration data to be submitted AFTER email verification
-            const registrationData = {
-                userId,
-                role: portalType
-            };
-
             setIsLoading(false);
-            // Redirect to OTP verification page, passing email AND registration data in state
+            // Redirect to OTP verification page, passing ONLY email in state
+            // Registration data (name, password, etc.) is now stored in DB metadata via OTP table
             navigate('/verify-email', { 
-                state: { 
-                    email,
-                    registrationData
-                } 
+                state: { email } 
             });
         } catch (err: unknown) {
             const message = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;

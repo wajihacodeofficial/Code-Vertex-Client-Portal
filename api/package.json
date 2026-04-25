@@ -4,5 +4,8 @@
   "description": "Backend API for Code Vertex Client Portal",
   "main": "index.js",
   "type": "commonjs",
-  "private": true
+  "private": true,
+  "dependencies": {
+    "resend": "^6.12.2"
+  }
 }

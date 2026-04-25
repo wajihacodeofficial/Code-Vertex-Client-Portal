@@ -12,7 +12,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import api, { API_URL } from '../../lib/api';
-import type { RegistrationRequest } from '../../context/AuthContext';
+import { useAuth, type RegistrationRequest } from '../../context/AuthContext';
 import { io } from 'socket.io-client';
 
 const RegistrationRequests = () => {
@@ -52,25 +52,28 @@ const RegistrationRequests = () => {
         };
     }, []);
 
-    const handleReview = async (id: string, status: 'APPROVED' | 'REJECTED') => {
-        if (status === 'REJECTED' && !rejectionReason) {
+    const { approveUser, rejectUser } = useAuth();
+
+    const handleReview = async (id: string, action: 'APPROVE' | 'REJECT') => {
+        if (action === 'REJECT' && !rejectionReason) {
             toast.error('Please provide a rejection reason');
             return;
         }
 
         setIsReviewing(true);
         try {
-            await api.patch(`/api/registration-requests/${id}/review`, { 
-                status, 
-                rejectionReason 
-            });
-            toast.success(`Request ${status.toLowerCase()} successfully`);
-            setRequests(prev => prev.filter(r => r.id !== id));
+            if (action === 'APPROVE') {
+                await approveUser(id);
+            } else {
+                await rejectUser(id, rejectionReason);
+            }
+            
+            // Refresh local list after context update
+            await fetchRequests();
             setSelectedRequest(null);
             setRejectionReason('');
-        } catch (err: any) {
-            const message = err.response?.data?.error || 'Failed to process request';
-            toast.error(message);
+        } catch (err: unknown) {
+            console.error('Action error:', err);
         } finally {
             setIsReviewing(false);
         }
@@ -198,14 +201,14 @@ const RegistrationRequests = () => {
                                     <div className="flex gap-3">
                                         <button 
                                             disabled={isReviewing}
-                                            onClick={() => handleReview(selectedRequest.id, 'APPROVED')}
+                                            onClick={() => handleReview(selectedRequest.id, 'APPROVE')}
                                             className="flex-1 bg-success hover:bg-success/80 text-black font-black uppercase tracking-widest text-[10px] py-4 rounded-xl shadow-glow transition-all disabled:opacity-50"
                                         >
                                             Approve User
                                         </button>
                                         <button 
                                             disabled={isReviewing}
-                                            onClick={() => handleReview(selectedRequest.id, 'REJECTED')}
+                                            onClick={() => handleReview(selectedRequest.id, 'REJECT')}
                                             className="px-6 bg-red-500/10 text-red-500 border border-red-500/20 hover:bg-red-500 hover:text-white transition-all rounded-xl font-black uppercase tracking-widest text-[10px] disabled:opacity-50"
                                         >
                                             Reject
