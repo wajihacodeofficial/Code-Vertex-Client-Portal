@@ -224,9 +224,9 @@ const ProjectsList: React.FC = () => {
                                         {(project.team || []).slice(0, 3).map((member: any, idx: number) => (
                                             <img key={idx} src={member.avatar} className="w-7 h-7 rounded-full border border-surface" alt="" />
                                         ))}
-                                        {project.team?.length > 3 && (
+                                        {(project.team?.length || 0) > 3 && (
                                             <div className="w-7 h-7 rounded-full bg-surface border border-white/10 flex items-center justify-center text-[10px] text-text-muted font-bold">
-                                                +{project.team.length - 3}
+                                                +{(project.team?.length || 0) - 3}
                                             </div>
                                         )}
                                     </div>
